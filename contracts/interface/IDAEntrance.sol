@@ -3,6 +3,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import "./Submission.sol";
+import "../libraries/BN254.sol";
 
 interface IDAEntrance {
     /*=== structs ===*/
@@ -11,7 +12,8 @@ interface IDAEntrance {
         uint id;
         bytes32 commitRoot;
         address[] signers;
-        bytes signatures;
+        BN254.G2Point aggPkG2;
+        BN254.G1Point signature;
     }
 
     /*=== events ===*/
@@ -21,12 +23,12 @@ interface IDAEntrance {
 
     /*=== functions ===*/
     function addressBook() external view returns (address);
+
     function dataRootCnt(bytes32) external view returns (uint);
-    function getSignersAndThreshold(
-        bytes32 /*_dataRoot*/,
-        uint /*_id*/
-    ) external view returns (address[] memory res, uint threshold);
+
     function submitOriginalData(Submission[] memory _submissions) external payable;
+
     function verifiedCommitRoot(bytes32, uint) external view returns (bytes32);
+
     function submitVerifiedCommitRoots(CommitRootSubmission[] memory _submissions) external;
 }

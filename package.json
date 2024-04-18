@@ -15,11 +15,20 @@
     "fmt:ts": "prettier 'src/**/*.ts' '*.ts' -w"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.6",
     "@nomicfoundation/hardhat-ethers": "^3.0.5",
     "@openzeppelin/contracts": "4.8.3",
     "@openzeppelin/hardhat-upgrades": "^3.0.5",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
+    "@typescript-eslint/eslint-plugin": "6.21.0",
+    "@typescript-eslint/parser": "6.21.0",
+    "chai": "4.3.7",
     "dotenv": "^16.4.5",
-    "eslint": "^9.0.0",
+    "eslint": "8.34.0",
+    "eslint-config-prettier": "8.6.0",
+    "eslint-plugin-no-only-tests": "3.1.0",
+    "eslint-plugin-prettier": "4.2.1",
     "ethers": "^6.11.1",
     "hardhat": "^2.22.2",
     "hardhat-abi-exporter": "^2.10.1",
@@ -27,13 +36,14 @@
     "hardhat-deploy-ethers": "^0.4.1",
     "hardhat-gas-reporter": "^2.1.1",
     "hardhat-interface-generator": "^0.0.6",
-    "prettier": "^3.2.5",
-    "prettier-plugin-organize-imports": "^3.2.4",
-    "prettier-plugin-solidity": "^1.3.1",
+    "prettier": "2.8.4",
+    "prettier-plugin-organize-imports": "3.2.4",
+    "prettier-plugin-solidity": "1.1.2",
     "solhint": "^4.5.4",
-    "solhint-plugin-prettier": "^0.1.0",
+    "solhint-plugin-prettier": "0.0.5",
     "solidity-coverage": "^0.8.12",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typechain": "^8.3.2",
+    "typescript": "4.9.5"
   }
 }

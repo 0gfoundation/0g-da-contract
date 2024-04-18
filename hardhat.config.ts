@@ -1,4 +1,7 @@
+import "@nomicfoundation/hardhat-chai-matchers";
+import "@nomicfoundation/hardhat-ethers";
 import "@openzeppelin/hardhat-upgrades";
+import "@typechain/hardhat";
 import "hardhat-abi-exporter";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
@@ -59,9 +62,10 @@ const config: HardhatUserConfig = {
         timeout: 2000000,
     },
     verify: {
-    etherscan: {
-        apiKey: ETHERSCAN_API_KEY,
-    },},
+        etherscan: {
+            apiKey: ETHERSCAN_API_KEY,
+        },
+    },
     gasReporter: {
         enabled: process.env.REPORT_GAS ? true : false,
     },
