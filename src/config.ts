@@ -8,7 +8,11 @@ export const DefaultConfig: NetworkConfigs = {
     addressBook: ZeroAddress,
 };
 
-export const GlobalConfig: { [key: string]: NetworkConfigs } = {};
+export const GlobalConfig: { [key: string]: NetworkConfigs } = {
+    zg: {
+        addressBook: ZeroAddress,
+    },
+};
 
 export function getConfig(network: string) {
     if (network in GlobalConfig) return GlobalConfig[network];

@@ -64,15 +64,15 @@ contract DARegistry is IDARegistry, Initializable {
                 )
             )
         ) % BN254.FR_MODULUS;
-        require(
-            BN254.pairing(
-                _signature.plus(aggPkG1.scalar_mul(gamma)),
-                BN254.negGeneratorG2(),
-                _hash.plus(BN254.generatorG1().scalar_mul(gamma)),
-                _aggPkG2
-            ),
-            "DARegistry: signature verification failed"
+        (bool success, bool valid) = BN254.safePairing(
+            _signature.plus(aggPkG1.scalar_mul(gamma)),
+            BN254.negGeneratorG2(),
+            _hash.plus(BN254.generatorG1().scalar_mul(gamma)),
+            _aggPkG2,
+            120000
         );
+        require(success, "DARegistry: pairing precompile call failed");
+        require(valid, "DARegistry: signature is invalid");
     }
 
     /*=== signer management ===*/

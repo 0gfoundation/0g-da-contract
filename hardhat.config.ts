@@ -50,9 +50,9 @@ const config: HardhatUserConfig = {
             blockGasLimit: 100000000,
             gas: 100000000,
         },
-        BSCTestnet: {
+        zg: {
             ...userConfig,
-            url: "https://bsc-testnet.publicnode.com",
+            url: "http://0.0.0.0:8545",
         },
     },
     namedAccounts: {

@@ -18,6 +18,6 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 };
 
-deploy.tags = [CONTRACTS.DARegistry.name, "prod"];
-deploy.dependencies = [];
+deploy.tags = [CONTRACTS.DAEntrance.name, "prod"];
+deploy.dependencies = [CONTRACTS.DARegistry.name];
 export default deploy;
