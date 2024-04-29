@@ -9,9 +9,9 @@ interface IDAEntrance {
     /*=== structs ===*/
     struct CommitRootSubmission {
         bytes32 dataRoot;
-        uint id;
+        uint epoch;
         bytes32 commitRoot;
-        address[] signers;
+        bytes signersBitmap;
         BN254.G2Point aggPkG2;
         BN254.G1Point signature;
     }
@@ -23,8 +23,6 @@ interface IDAEntrance {
 
     /*=== functions ===*/
     function addressBook() external view returns (address);
-
-    function dataRootCnt(bytes32) external view returns (uint);
 
     function submitOriginalData(Submission[] memory _submissions) external payable;
 

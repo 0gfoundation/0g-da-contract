@@ -12,12 +12,11 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // initialize
     console.log(`initializing ${CONTRACTS.DAEntrance.name}..`);
-    const registry_ = await getTypedContract(hre, CONTRACTS.DARegistry);
     if (!(await entrance_.initialized())) {
-        await (await entrance_.initialize(config.addressBook, await registry_.getAddress())).wait();
+        await (await entrance_.initialize(config.addressBook)).wait();
     }
 };
 
 deploy.tags = [CONTRACTS.DAEntrance.name, "prod"];
-deploy.dependencies = [CONTRACTS.DARegistry.name];
+deploy.dependencies = [];
 export default deploy;

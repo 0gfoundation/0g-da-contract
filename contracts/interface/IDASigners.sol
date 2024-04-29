@@ -4,7 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "../libraries/BN254.sol";
 
-interface IDARegistry {
+interface IDASigners {
     /*=== struct ===*/
     struct SignerDetail {
         string socket;
@@ -17,14 +17,11 @@ interface IDARegistry {
     event SocketUpdated(address indexed signer, string socket);
 
     /*=== function ===*/
-    function getSigners() external view returns (address[] memory accounts, SignerDetail[] memory details);
+    function epochNumber() external view returns (uint);
 
-    function signerCount() external view returns (uint);
+    function getSigners(uint epoch) external view returns (address[] memory accounts, SignerDetail[] memory details);
 
-    function checkSignature(
-        BN254.G1Point memory _hash,
-        address[] memory _signers,
-        BN254.G2Point memory _aggPkG2,
-        BN254.G1Point memory _signature
-    ) external view;
+    function registerSigner(SignerDetail memory _signer, BN254.G1Point memory _signature) external;
+
+    function getAggPkG1(uint epoch, bytes memory signersBitmap) external view returns (BN254.G1Point memory aggPkG1);
 }

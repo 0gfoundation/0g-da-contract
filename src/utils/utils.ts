@@ -10,7 +10,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { ContractFactory, ContractRunner, Signer } from "ethers";
 import * as TypechainTypes from "../../typechain-types";
 // 2. We import the values at runtime and silently ignore any exceptions.
-let Factories = {} as typeof TypechainTypes;
+export let Factories = {} as typeof TypechainTypes;
 try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     Factories = require("../../typechain-types") as typeof TypechainTypes;
@@ -42,7 +42,6 @@ class ContractMeta<T> {
 
 export const CONTRACTS = {
     DAEntrance: new ContractMeta(Factories.DAEntrance__factory),
-    DARegistry: new ContractMeta(Factories.DARegistry__factory),
 } as const;
 
 const UPGRADEABLE_BEACON = "UpgradeableBeacon";
