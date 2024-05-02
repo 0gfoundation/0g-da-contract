@@ -7,6 +7,7 @@ import "../libraries/BN254.sol";
 interface IDASigners {
     /*=== struct ===*/
     struct SignerDetail {
+        address signer;
         string socket;
         BN254.G1Point pkG1;
         BN254.G2Point pkG2;
@@ -19,9 +20,15 @@ interface IDASigners {
     /*=== function ===*/
     function epochNumber() external view returns (uint);
 
-    function getSigners(uint epoch) external view returns (address[] memory accounts, SignerDetail[] memory details);
+    function getSigner(address account) external view returns (SignerDetail memory);
+
+    function getSigners(uint epoch) external view returns (SignerDetail[] memory details);
 
     function registerSigner(SignerDetail memory _signer, BN254.G1Point memory _signature) external;
+
+    function updateSocket(string memory socket) external;
+
+    function registerNextEpoch(BN254.G1Point memory _signature) external;
 
     function getAggPkG1(uint epoch, bytes memory signersBitmap) external view returns (BN254.G1Point memory aggPkG1);
 }
