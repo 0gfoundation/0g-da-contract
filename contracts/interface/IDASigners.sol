@@ -30,5 +30,8 @@ interface IDASigners {
 
     function registerNextEpoch(BN254.G1Point memory _signature) external;
 
-    function getAggPkG1(uint epoch, bytes memory signersBitmap) external view returns (BN254.G1Point memory aggPkG1);
+    function getAggPkG1(
+        uint epoch,
+        bytes memory signersBitmap
+    ) external view returns (BN254.G1Point memory aggPkG1, uint total, uint hit);
 }

@@ -92,7 +92,11 @@ contract DAEntrance is IDAEntrance, Initializable {
             BN254.G1Point memory dataHash = BN254.hashToG1(
                 keccak256(abi.encodePacked(_submissions[i].dataRoot, _submissions[i].epoch, _submissions[i].commitRoot))
             );
-            BN254.G1Point memory aggPkG1 = DA_SIGNERS.getAggPkG1(_submissions[i].epoch, _submissions[i].signersBitmap);
+            (BN254.G1Point memory aggPkG1, uint total, uint hit) = DA_SIGNERS.getAggPkG1(
+                _submissions[i].epoch,
+                _submissions[i].signersBitmap
+            );
+            require(2 * total <= hit * 3, "DARegistry: insufficient signatures");
             _validateSignature(dataHash, aggPkG1, _submissions[i].aggPkG2, _submissions[i].signature);
             // save verified root
             verifiedCommitRoot[_submissions[i].dataRoot][_submissions[i].epoch] = _submissions[i].commitRoot;
