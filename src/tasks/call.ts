@@ -52,27 +52,29 @@ task("precompile:getsigner", "get signer").setAction(async (_, hre) => {
     );
     const { getNamedAccounts } = hre;
     const { deployer } = await getNamedAccounts();
-    console.log(await precompile.getSigner(deployer));
+    console.log(await precompile.getSigner([deployer]));
 });
 
-task("precompile:getsigners", "get signers")
+task("precompile:getquorum", "get signers")
     .addParam("epoch", "epoch number", undefined, types.int, false)
-    .setAction(async (args: { epoch: number }, hre) => {
+    .addParam("quorum", "quorum id", undefined, types.int, false)
+    .setAction(async (args: { epoch: number; quorum: number }, hre) => {
         const precompile = Factories.IDASigners__factory.connect(
             "0x0000000000000000000000000000000000001000",
             (await hre.ethers.getSigners())[0]
         );
-        console.log(await precompile.getSigners(args.epoch));
+        console.log(await precompile.getQuorum(args.epoch, args.quorum));
     });
 
 task("precompile:getaggpkg1", "get aggregate public key g1")
     .addParam("epoch", "epoch number", undefined, types.int, false)
-    .setAction(async (args: { epoch: number }, hre) => {
+    .addParam("quorum", "quorum id", undefined, types.int, false)
+    .setAction(async (args: { epoch: number; quorum: number }, hre) => {
         const precompile = Factories.IDASigners__factory.connect(
             "0x0000000000000000000000000000000000001000",
             (await hre.ethers.getSigners())[0]
         );
-        console.log(await precompile.getAggPkG1(args.epoch, "0x11"));
+        console.log(await precompile.getAggPkG1(args.epoch, args.quorum, "0x11"));
     });
 
 task("precompile:register", "register signer").setAction(async (_, hre) => {

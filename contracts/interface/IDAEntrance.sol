@@ -10,23 +10,22 @@ interface IDAEntrance {
     struct CommitRootSubmission {
         bytes32 dataRoot;
         uint epoch;
+        uint quorumId;
         bytes32 commitRoot;
-        bytes signersBitmap;
+        bytes quorumBitmap;
         BN254.G2Point aggPkG2;
         BN254.G1Point signature;
     }
 
     /*=== events ===*/
 
-    event DataUpload(bytes32 dataRoot, uint id);
-    event CommitRootVerified(bytes32 dataRoot, uint id);
+    event DataUpload(bytes32 dataRoot, uint id, uint quorumId);
+    event CommitRootVerified(bytes32 dataRoot, uint id, uint quorumId);
 
     /*=== functions ===*/
-    function addressBook() external view returns (address);
+    function submitOriginalData(bytes32[] memory _dataRoots) external payable;
 
-    function submitOriginalData(Submission[] memory _submissions) external payable;
-
-    function verifiedCommitRoot(bytes32, uint) external view returns (bytes32);
+    function verifiedCommitRoot(bytes32, uint, uint) external view returns (bytes32);
 
     function submitVerifiedCommitRoots(CommitRootSubmission[] memory _submissions) external;
 }

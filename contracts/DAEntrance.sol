@@ -16,19 +16,17 @@ contract DAEntrance is IDAEntrance, Initializable {
     using BN254 for BN254.G1Point;
 
     IDASigners public immutable DA_SIGNERS = IDASigners(0x0000000000000000000000000000000000001000);
+    uint public immutable SLICE_NUMERATOR = 3;
+    uint public immutable SLICE_DENOMINATOR = 8;
 
-    address public addressBook; // 0g storage contract address book
-    address public signerRegistry;
-    // data roots => epoch number => verified commitment root
-    mapping(bytes32 => mapping(uint => bytes32)) public verifiedCommitRoot;
+    // data roots => epoch number => quorum id => verified commitment root
+    mapping(bytes32 => mapping(uint => mapping(uint => bytes32))) public verifiedCommitRoot;
+    uint private _quorumIndex;
 
     // initialize
-    function initialize(address _addressBook) external onlyInitializeOnce {
-        addressBook = _addressBook;
-    }
+    function initialize() external onlyInitializeOnce {}
 
-    // submit original data
-
+    /*
     function _getDataRoot(Submission memory _submission) internal pure returns (bytes32 root) {
         uint i = _submission.nodes.length - 1;
         root = _submission.nodes[i].root;
@@ -37,16 +35,26 @@ contract DAEntrance is IDAEntrance, Initializable {
             root = keccak256(abi.encode(_submission.nodes[i].root, root));
         }
     }
+    */
 
-    function submitOriginalData(Submission[] memory _submissions) external payable {
-        IFlow flow_ = IFlow(IAddressBook(addressBook).flow());
+    // submit encoded data
+    function submitOriginalData(bytes32[] memory _dataRoots) external payable {
         uint epoch = DA_SIGNERS.epochNumber();
+        uint quorumCount = DA_SIGNERS.quorumCount(epoch);
+        require(quorumCount > 0, "DAEntrance: No DA Signers");
+        _quorumIndex = (_quorumIndex + 1) % quorumCount;
+        /*
         // TODO: refund
         flow_.batchSubmit{value: msg.value}(_submissions);
         uint n = _submissions.length;
         for (uint i = 0; i < n; ++i) {
             bytes32 root = _getDataRoot(_submissions[i]);
             emit DataUpload(root, epoch);
+        }
+        */
+        uint n = _dataRoots.length;
+        for (uint i = 0; i < n; ++i) {
+            emit DataUpload(_dataRoots[i], epoch, _quorumIndex);
         }
     }
 
@@ -85,22 +93,35 @@ contract DAEntrance is IDAEntrance, Initializable {
     function submitVerifiedCommitRoots(CommitRootSubmission[] memory _submissions) external {
         uint n = _submissions.length;
         for (uint i = 0; i < n; ++i) {
-            if (verifiedCommitRoot[_submissions[i].dataRoot][_submissions[i].epoch] != bytes32(0)) {
+            if (
+                verifiedCommitRoot[_submissions[i].dataRoot][_submissions[i].epoch][_submissions[i].quorumId] !=
+                bytes32(0)
+            ) {
                 continue;
             }
             // verify signature
             BN254.G1Point memory dataHash = BN254.hashToG1(
-                keccak256(abi.encodePacked(_submissions[i].dataRoot, _submissions[i].epoch, _submissions[i].commitRoot))
+                keccak256(
+                    abi.encodePacked(
+                        _submissions[i].dataRoot,
+                        _submissions[i].epoch,
+                        _submissions[i].quorumId,
+                        _submissions[i].commitRoot
+                    )
+                )
             );
             (BN254.G1Point memory aggPkG1, uint total, uint hit) = DA_SIGNERS.getAggPkG1(
                 _submissions[i].epoch,
-                _submissions[i].signersBitmap
+                _submissions[i].quorumId,
+                _submissions[i].quorumBitmap
             );
-            require(2 * total <= hit * 3, "DARegistry: insufficient signatures");
+            require(SLICE_NUMERATOR * total <= hit * SLICE_DENOMINATOR, "DARegistry: insufficient signed slices");
             _validateSignature(dataHash, aggPkG1, _submissions[i].aggPkG2, _submissions[i].signature);
             // save verified root
-            verifiedCommitRoot[_submissions[i].dataRoot][_submissions[i].epoch] = _submissions[i].commitRoot;
-            emit CommitRootVerified(_submissions[i].dataRoot, _submissions[i].epoch);
+            verifiedCommitRoot[_submissions[i].dataRoot][_submissions[i].epoch][
+                _submissions[i].quorumId
+            ] = _submissions[i].commitRoot;
+            emit CommitRootVerified(_submissions[i].dataRoot, _submissions[i].epoch, _submissions[i].quorumId);
         }
     }
 
