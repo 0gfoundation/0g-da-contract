@@ -22,6 +22,8 @@ interface IDASigners {
 
     function quorumCount(uint _epoch) external view returns (uint);
 
+    function isSigner(address _account) external view returns (bool);
+
     function getSigner(address[] memory _account) external view returns (SignerDetail[] memory);
 
     function getQuorum(uint _epoch, uint _quorumId) external view returns (address[] memory);
@@ -29,6 +31,8 @@ interface IDASigners {
     function registerSigner(SignerDetail memory _signer, BN254.G1Point memory _signature) external;
 
     function updateSocket(string memory _socket) external;
+
+    function registeredEpoch(address _account, uint _epoch) external view returns (bool);
 
     function registerNextEpoch(BN254.G1Point memory _signature) external;
 
