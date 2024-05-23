@@ -19,8 +19,8 @@ contract DAEntrance is IDAEntrance, Initializable {
     uint public immutable SLICE_NUMERATOR = 3;
     uint public immutable SLICE_DENOMINATOR = 8;
 
-    // data roots => epoch number => quorum id => verified commitment root
-    mapping(bytes32 => mapping(uint => mapping(uint => bytes32))) public verifiedCommitRoot;
+    // data roots => epoch number => quorum id => verified erasure commitment
+    mapping(bytes32 => mapping(uint => mapping(uint => BN254.G1Point))) private _verifiedErasureCommitment;
     uint private _quorumIndex;
 
     // initialize
@@ -36,6 +36,14 @@ contract DAEntrance is IDAEntrance, Initializable {
         }
     }
     */
+
+    function verifiedErasureCommitment(
+        bytes32 _dataRoot,
+        uint _epoch,
+        uint _quorumId
+    ) external view returns (BN254.G1Point memory) {
+        return _verifiedErasureCommitment[_dataRoot][_epoch][_quorumId];
+    }
 
     // submit encoded data
     function submitOriginalData(bytes32[] memory _dataRoots) external payable {
@@ -93,11 +101,13 @@ contract DAEntrance is IDAEntrance, Initializable {
     function submitVerifiedCommitRoots(CommitRootSubmission[] memory _submissions) external {
         uint n = _submissions.length;
         for (uint i = 0; i < n; ++i) {
-            if (
-                verifiedCommitRoot[_submissions[i].dataRoot][_submissions[i].epoch][_submissions[i].quorumId] !=
-                bytes32(0)
-            ) {
-                continue;
+            {
+                BN254.G1Point memory commitment = _verifiedErasureCommitment[_submissions[i].dataRoot][
+                    _submissions[i].epoch
+                ][_submissions[i].quorumId];
+                if (commitment.X != 0 || commitment.Y != 0) {
+                    continue;
+                }
             }
             // verify signature
             BN254.G1Point memory dataHash = BN254.hashToG1(
@@ -106,7 +116,8 @@ contract DAEntrance is IDAEntrance, Initializable {
                         _submissions[i].dataRoot,
                         _submissions[i].epoch,
                         _submissions[i].quorumId,
-                        _submissions[i].commitRoot
+                        _submissions[i].erasureCommitment.X,
+                        _submissions[i].erasureCommitment.Y
                     )
                 )
             );
@@ -118,10 +129,10 @@ contract DAEntrance is IDAEntrance, Initializable {
             require(SLICE_NUMERATOR * total <= hit * SLICE_DENOMINATOR, "DARegistry: insufficient signed slices");
             _validateSignature(dataHash, aggPkG1, _submissions[i].aggPkG2, _submissions[i].signature);
             // save verified root
-            verifiedCommitRoot[_submissions[i].dataRoot][_submissions[i].epoch][
+            _verifiedErasureCommitment[_submissions[i].dataRoot][_submissions[i].epoch][
                 _submissions[i].quorumId
-            ] = _submissions[i].commitRoot;
-            emit CommitRootVerified(_submissions[i].dataRoot, _submissions[i].epoch, _submissions[i].quorumId);
+            ] = _submissions[i].erasureCommitment;
+            emit ErasureCommitmentVerified(_submissions[i].dataRoot, _submissions[i].epoch, _submissions[i].quorumId);
         }
     }
 

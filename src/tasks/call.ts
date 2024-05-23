@@ -1,6 +1,6 @@
 import { task, types } from "hardhat/config";
 import { BN254 } from "../../typechain-types/contracts/interface/IDASigners";
-import { Factories } from "../utils/utils";
+import { CONTRACTS, Factories, getTypedContract } from "../utils/utils";
 
 task("precompile:epoch", "call precompile contract").setAction(async (_, hre) => {
     const precompile = Factories.IDASigners__factory.connect(
@@ -9,6 +9,16 @@ task("precompile:epoch", "call precompile contract").setAction(async (_, hre) =>
     );
     console.log(await precompile.epochNumber());
 });
+
+task("precompile:quorum", "call precompile contract")
+    .addParam("epoch", "epoch number", undefined, types.int, false)
+    .setAction(async (args: { epoch: number }, hre) => {
+        const precompile = Factories.IDASigners__factory.connect(
+            "0x0000000000000000000000000000000000001000",
+            (await hre.ethers.getSigners())[0]
+        );
+        console.log(await precompile.quorumCount(args.epoch));
+    });
 
 task("precompile:test", "register signer").setAction(async (_, hre) => {
     const precompile = Factories.IDASigners__factory.connect(
@@ -55,7 +65,61 @@ task("precompile:getsigner", "get signer").setAction(async (_, hre) => {
     console.log(await precompile.getSigner([deployer]));
 });
 
-task("precompile:getquorum", "get signers")
+/*
+task("entrance:hash", "get hash").setAction(async (_, hre) => {
+    const entrance = await getTypedContract(hre, CONTRACTS.DAEntrance);
+    console.log(
+        await entrance.getHash({
+            dataRoot: "0x1111111111111111111111111111111111111111111111111111111111111111",
+            epoch: 1,
+            quorumId: 2,
+            erasureCommitment: {
+                X: 1,
+                Y: 2,
+            },
+            quorumBitmap:
+                "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            aggPkG2: {
+                X: [
+                    10857046999023057135944570762232829481370756359578518086990519993285655852781n,
+                    11559732032986387107991004021392285783925812861821192530917403151452391805634n,
+                ],
+                Y: [
+                    8495653923123431417604973247489272438418190587263600148770280649306958101930n,
+                    4082367875863433681332203403145435568316851327593401208105741076214120093531n,
+                ],
+            },
+            signature: {
+                X: 1n,
+                Y: 2n,
+            },
+        })
+    );
+});
+*/
+
+task("precompile:issigner", "is signer").setAction(async (_, hre) => {
+    const precompile = Factories.IDASigners__factory.connect(
+        "0x0000000000000000000000000000000000001000",
+        (await hre.ethers.getSigners())[0]
+    );
+    const { getNamedAccounts } = hre;
+    const { deployer } = await getNamedAccounts();
+    console.log(await precompile.isSigner(deployer));
+});
+
+task("precompile:registered", "is registered for next epoch").setAction(async (_, hre) => {
+    const precompile = Factories.IDASigners__factory.connect(
+        "0x0000000000000000000000000000000000001000",
+        (await hre.ethers.getSigners())[0]
+    );
+    const { getNamedAccounts } = hre;
+    const { deployer } = await getNamedAccounts();
+    const nextEpoch = (await precompile.epochNumber()) + 1n;
+    console.log(await precompile.registeredEpoch(deployer, nextEpoch));
+});
+
+task("precompile:getquorum", "get quorum")
     .addParam("epoch", "epoch number", undefined, types.int, false)
     .addParam("quorum", "quorum id", undefined, types.int, false)
     .setAction(async (args: { epoch: number; quorum: number }, hre) => {
@@ -74,7 +138,13 @@ task("precompile:getaggpkg1", "get aggregate public key g1")
             "0x0000000000000000000000000000000000001000",
             (await hre.ethers.getSigners())[0]
         );
-        console.log(await precompile.getAggPkG1(args.epoch, args.quorum, "0x11"));
+        console.log(
+            await precompile.getAggPkG1(
+                args.epoch,
+                args.quorum,
+                "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            )
+        );
     });
 
 task("precompile:register", "register signer").setAction(async (_, hre) => {

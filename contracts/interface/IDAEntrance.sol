@@ -11,7 +11,7 @@ interface IDAEntrance {
         bytes32 dataRoot;
         uint epoch;
         uint quorumId;
-        bytes32 commitRoot;
+        BN254.G1Point erasureCommitment;
         bytes quorumBitmap;
         BN254.G2Point aggPkG2;
         BN254.G1Point signature;
@@ -19,13 +19,13 @@ interface IDAEntrance {
 
     /*=== events ===*/
 
-    event DataUpload(bytes32 dataRoot, uint id, uint quorumId);
-    event CommitRootVerified(bytes32 dataRoot, uint id, uint quorumId);
+    event DataUpload(bytes32 dataRoot, uint epoch, uint quorumId);
+    event ErasureCommitmentVerified(bytes32 dataRoot, uint epoch, uint quorumId);
 
     /*=== functions ===*/
     function submitOriginalData(bytes32[] memory _dataRoots) external payable;
 
-    function verifiedCommitRoot(bytes32, uint, uint) external view returns (bytes32);
+    function verifiedErasureCommitment(bytes32, uint, uint) external view returns (BN254.G1Point memory);
 
     function submitVerifiedCommitRoots(CommitRootSubmission[] memory _submissions) external;
 }
