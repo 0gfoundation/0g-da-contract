@@ -62,41 +62,49 @@ task("precompile:getsigner", "get signer").setAction(async (_, hre) => {
     );
     const { getNamedAccounts } = hre;
     const { deployer } = await getNamedAccounts();
-    console.log(await precompile.getSigner([deployer]));
+    const signer = await precompile.getSigner([deployer]);
+    console.log(signer[0]);
 });
 
-/*
-task("entrance:hash", "get hash").setAction(async (_, hre) => {
+task("entrance:submit", "upload").setAction(async (_, hre) => {
     const entrance = await getTypedContract(hre, CONTRACTS.DAEntrance);
-    console.log(
-        await entrance.getHash({
-            dataRoot: "0x1111111111111111111111111111111111111111111111111111111111111111",
-            epoch: 1,
-            quorumId: 2,
-            erasureCommitment: {
-                X: 1,
-                Y: 2,
-            },
-            quorumBitmap:
-                "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            aggPkG2: {
-                X: [
-                    10857046999023057135944570762232829481370756359578518086990519993285655852781n,
-                    11559732032986387107991004021392285783925812861821192530917403151452391805634n,
-                ],
-                Y: [
-                    8495653923123431417604973247489272438418190587263600148770280649306958101930n,
-                    4082367875863433681332203403145435568316851327593401208105741076214120093531n,
-                ],
-            },
-            signature: {
-                X: 1n,
-                Y: 2n,
-            },
-        })
-    );
+    await (
+        await entrance.submitOriginalData(["0x1111111111111111111111111111111111111111111111111111111111111111"])
+    ).wait();
 });
-*/
+
+task("entrance:verify", "verify").setAction(async (_, hre) => {
+    const entrance = await getTypedContract(hre, CONTRACTS.DAEntrance);
+    await (
+        await entrance.submitVerifiedCommitRoots([
+            {
+                dataRoot: "0x1111111111111111111111111111111111111111111111111111111111111111",
+                epoch: 1,
+                quorumId: 0,
+                erasureCommitment: {
+                    X: 1,
+                    Y: 2,
+                },
+                quorumBitmap:
+                    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                aggPkG2: {
+                    X: [
+                        11559732032986387107991004021392285783925812861821192530917403151452391805634n,
+                        10857046999023057135944570762232829481370756359578518086990519993285655852781n,
+                    ],
+                    Y: [
+                        4082367875863433681332203403145435568316851327593401208105741076214120093531n,
+                        8495653923123431417604973247489272438418190587263600148770280649306958101930n,
+                    ],
+                },
+                signature: {
+                    X: 20240815794158609083887909091588435888990175347573488336018201758301351634910n,
+                    Y: 8696350876887103154678301478569986239034949365125721338095706277229682112359n,
+                },
+            },
+        ])
+    ).wait();
+});
 
 task("precompile:issigner", "is signer").setAction(async (_, hre) => {
     const precompile = Factories.IDASigners__factory.connect(

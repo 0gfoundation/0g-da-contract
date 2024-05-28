@@ -13,6 +13,8 @@ interface IDAEntrance {
         uint quorumId;
         BN254.G1Point erasureCommitment;
         bytes quorumBitmap;
+        // the aggregate G2 pubkey pass to 0x08 precompile contract, pay attention to the element order:
+        // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-197.md#encoding
         BN254.G2Point aggPkG2;
         BN254.G1Point signature;
     }
