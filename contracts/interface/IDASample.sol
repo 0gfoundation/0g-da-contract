@@ -4,6 +4,12 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "../libraries/SampleVerifier.sol";
 
+struct SampleStatus {
+    bytes32 sampleHash;
+    uint256 numSubmissions;
+    uint256 quality;
+}
+
 interface IDASample {
     event DAReward(
         address indexed beneficiary,
@@ -17,4 +23,6 @@ interface IDASample {
     );
 
     function submitSamplingResponse(SampleResponse memory rep) external;
+
+    function sampleStatus() external returns (SampleStatus memory);
 }
