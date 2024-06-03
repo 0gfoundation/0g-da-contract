@@ -3,17 +3,20 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import "./libraries/BN254.sol";
+import "./libraries/SampleVerifier.sol";
 
 import "./utils/Initializable.sol";
 
 import "./interface/IDAEntrance.sol";
+import "./interface/IDASample.sol";
 import "./interface/IDASigners.sol";
 import "./interface/IAddressBook.sol";
 import "./interface/IFlow.sol";
 import "./interface/Submission.sol";
 
-contract DAEntrance is IDAEntrance, Initializable {
+contract DAEntrance is IDAEntrance, IDASample, Initializable {
     using BN254 for BN254.G1Point;
+    using SampleVerifier for SampleResponse;
 
     IDASigners public immutable DA_SIGNERS = IDASigners(0x0000000000000000000000000000000000001000);
     uint public immutable SLICE_NUMERATOR = 3;
@@ -23,8 +26,18 @@ contract DAEntrance is IDAEntrance, Initializable {
     mapping(bytes32 => mapping(uint => mapping(uint => BN254.G1Point))) private _verifiedErasureCommitment;
     uint private _quorumIndex;
 
+    // parameters for DA Sampling
+    uint public nextSampleHeight;
+    uint public targetQuality;
+    uint public immutable MAX_TARGET_QUALITY = type(uint).max / 262144;
+    uint public roundSubmissions;
+    uint public immutable TARGET_ROUND_SUBMISSIONS = 20;
+
     // initialize
-    function initialize() external onlyInitializeOnce {}
+    function initialize() external onlyInitializeOnce {
+        nextSampleHeight = SampleVerifier.nextSampleHeight(block.number);
+        targetQuality = MAX_TARGET_QUALITY;
+    }
 
     /*
     function _getDataRoot(Submission memory _submission) internal pure returns (bytes32 root) {
@@ -43,6 +56,12 @@ contract DAEntrance is IDAEntrance, Initializable {
         uint _quorumId
     ) external view returns (BN254.G1Point memory) {
         return _verifiedErasureCommitment[_dataRoot][_epoch][_quorumId];
+    }
+
+    function commitmentExists(bytes32 _dataRoot, uint _epoch, uint _quorumId) public view returns (bool) {
+        BN254.G1Point memory commitment = _verifiedErasureCommitment[_dataRoot][_epoch][_quorumId];
+
+        return commitment.X != 0 || commitment.Y != 0;
     }
 
     // submit encoded data
@@ -101,14 +120,10 @@ contract DAEntrance is IDAEntrance, Initializable {
     function submitVerifiedCommitRoots(CommitRootSubmission[] memory _submissions) external {
         uint n = _submissions.length;
         for (uint i = 0; i < n; ++i) {
-            {
-                BN254.G1Point memory commitment = _verifiedErasureCommitment[_submissions[i].dataRoot][
-                    _submissions[i].epoch
-                ][_submissions[i].quorumId];
-                if (commitment.X != 0 || commitment.Y != 0) {
-                    continue;
-                }
+            if (commitmentExists(_submissions[i].dataRoot, _submissions[i].epoch, _submissions[i].quorumId)) {
+                continue;
             }
+
             // verify signature
             BN254.G1Point memory dataHash = BN254.hashToG1(
                 keccak256(
@@ -134,6 +149,57 @@ contract DAEntrance is IDAEntrance, Initializable {
             ] = _submissions[i].erasureCommitment;
             emit ErasureCommitmentVerified(_submissions[i].dataRoot, _submissions[i].epoch, _submissions[i].quorumId);
         }
+    }
+
+    function submitSamplingResponse(SampleResponse memory rep) external {
+        updateSampleRound();
+
+        require(roundSubmissions < TARGET_ROUND_SUBMISSIONS * 2, "Too many submissions in one round");
+        require(rep.sampleHeight == nextSampleHeight - SAMPLE_PERIOD, "Unmatched sample height");
+        require(rep.quality <= targetQuality, "Quality not reached");
+        require(commitmentExists(rep.dataRoot, rep.epoch, rep.quorumId), "Unrecorded commitment");
+        // TODO: check whether epoch is still valid
+
+        rep.verify();
+
+        // TODO: better DA_SIGNERS interface
+        address beneficiary = DA_SIGNERS.getQuorum(rep.epoch, rep.quorumId)[rep.lineIndex];
+        roundSubmissions += 1;
+
+        // TODO: send reward
+        payable(beneficiary).transfer(0);
+
+        emit DAReward(
+            beneficiary,
+            rep.sampleHeight,
+            rep.epoch,
+            rep.quorumId,
+            rep.dataRoot,
+            rep.quality,
+            rep.lineIndex,
+            rep.sublineIndex
+        );
+    }
+
+    function updateSampleRound() public {
+        if (block.number < nextSampleHeight) {
+            return;
+        }
+
+        uint targetQualityDelta;
+        if (roundSubmissions > TARGET_ROUND_SUBMISSIONS) {
+            targetQualityDelta = (roundSubmissions - TARGET_ROUND_SUBMISSIONS) / TARGET_ROUND_SUBMISSIONS / 8;
+            targetQuality -= targetQualityDelta;
+        } else {
+            targetQualityDelta = (TARGET_ROUND_SUBMISSIONS - roundSubmissions) / TARGET_ROUND_SUBMISSIONS / 8;
+            targetQuality += targetQualityDelta;
+        }
+        if (targetQuality > MAX_TARGET_QUALITY) {
+            targetQuality = MAX_TARGET_QUALITY;
+        }
+
+        nextSampleHeight = SampleVerifier.nextSampleHeight(block.number);
+        roundSubmissions = 0;
     }
 
     receive() external payable {}
