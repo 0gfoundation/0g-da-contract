@@ -9,15 +9,15 @@ uint64 constant BLOB_COL = 1024;
 uint64 constant SUBLINES = 32;
 
 struct SampleResponse {
-    uint sampleHeight;
-    uint epoch;
-    uint quorumId;
+    uint64 sampleHeight;
+    uint64 epoch;
+    uint64 quorumId;
+    uint32 lineIndex;
+    uint32 sublineIndex;
+    uint quality;
     bytes32 dataRoot;
     bytes32[NUM_COSET] blobRoots;
     bytes32[] proof;
-    uint quality;
-    uint64 lineIndex;
-    uint64 sublineIndex;
     bytes data;
 }
 
@@ -128,8 +128,8 @@ library SampleVerifier {
     ) internal pure {
         bytes32 currentHash = lineRoot;
 
-        for (uint i = proof.length; i > 0; i--) {
-            bytes32 proofElement = proof[i - 1];
+        for (uint i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
 
             if (leafIndex % 2 == 0) {
                 // Current node is a left child

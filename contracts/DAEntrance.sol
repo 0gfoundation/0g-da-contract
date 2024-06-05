@@ -202,13 +202,16 @@ contract DAEntrance is IDAEntrance, IDASample, Initializable {
         roundSubmissions = 0;
     }
 
-    function sampleStatus() external returns (SampleStatus memory) {
+    function sampleTask() external returns (SampleTask memory) {
         updateSampleRound();
 
+        uint sampleHeight = nextSampleHeight - SAMPLE_PERIOD;
+
         return
-            SampleStatus({
-                sampleHash: blockhash(nextSampleHeight - SAMPLE_PERIOD),
-                numSubmissions: roundSubmissions,
+            SampleTask({
+                sampleHash: blockhash(sampleHeight),
+                numSubmissions: uint64(roundSubmissions),
+                sampleHeight: uint64(sampleHeight),
                 quality: targetQuality
             });
     }

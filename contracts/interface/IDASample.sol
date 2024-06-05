@@ -4,10 +4,11 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "../libraries/SampleVerifier.sol";
 
-struct SampleStatus {
+struct SampleTask {
     bytes32 sampleHash;
-    uint256 numSubmissions;
     uint256 quality;
+    uint64 sampleHeight;
+    uint64 numSubmissions;
 }
 
 interface IDASample {
@@ -24,5 +25,5 @@ interface IDASample {
 
     function submitSamplingResponse(SampleResponse memory rep) external;
 
-    function sampleStatus() external returns (SampleStatus memory);
+    function sampleTask() external returns (SampleTask memory);
 }
