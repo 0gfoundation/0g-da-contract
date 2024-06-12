@@ -75,35 +75,40 @@ task("entrance:submit", "upload").setAction(async (_, hre) => {
 
 task("entrance:verify", "verify").setAction(async (_, hre) => {
     const entrance = await getTypedContract(hre, CONTRACTS.DAEntrance);
-    await (
-        await entrance.submitVerifiedCommitRoots([
-            {
-                dataRoot: "0x1111111111111111111111111111111111111111111111111111111111111111",
-                epoch: 1,
-                quorumId: 0,
-                erasureCommitment: {
-                    X: 1,
-                    Y: 2,
-                },
-                quorumBitmap:
-                    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-                aggPkG2: {
-                    X: [
-                        11559732032986387107991004021392285783925812861821192530917403151452391805634n,
-                        10857046999023057135944570762232829481370756359578518086990519993285655852781n,
-                    ],
-                    Y: [
-                        4082367875863433681332203403145435568316851327593401208105741076214120093531n,
-                        8495653923123431417604973247489272438418190587263600148770280649306958101930n,
-                    ],
-                },
-                signature: {
-                    X: 20240815794158609083887909091588435888990175347573488336018201758301351634910n,
-                    Y: 8696350876887103154678301478569986239034949365125721338095706277229682112359n,
-                },
-            },
-        ])
-    ).wait();
+    console.log(
+        await (
+            await entrance.submitVerifiedCommitRoots(
+                [
+                    {
+                        dataRoot: "0x1111111111111111111111111111111111111111111111111111111111111111",
+                        epoch: 1,
+                        quorumId: 0,
+                        erasureCommitment: {
+                            X: 1,
+                            Y: 2,
+                        },
+                        quorumBitmap:
+                            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                        aggPkG2: {
+                            X: [
+                                11559732032986387107991004021392285783925812861821192530917403151452391805634n,
+                                10857046999023057135944570762232829481370756359578518086990519993285655852781n,
+                            ],
+                            Y: [
+                                4082367875863433681332203403145435568316851327593401208105741076214120093531n,
+                                8495653923123431417604973247489272438418190587263600148770280649306958101930n,
+                            ],
+                        },
+                        signature: {
+                            X: 20240815794158609083887909091588435888990175347573488336018201758301351634910n,
+                            Y: 8696350876887103154678301478569986239034949365125721338095706277229682112359n,
+                        },
+                    },
+                ],
+                { gasLimit: 5000000 }
+            )
+        ).wait()
+    );
 });
 
 task("precompile:issigner", "is signer").setAction(async (_, hre) => {
@@ -135,7 +140,20 @@ task("precompile:getquorum", "get quorum")
             "0x0000000000000000000000000000000000001000",
             (await hre.ethers.getSigners())[0]
         );
-        console.log(await precompile.getQuorum(args.epoch, args.quorum));
+        const quorum = await precompile.getQuorum(args.epoch, args.quorum);
+        console.log(quorum);
+    });
+
+task("precompile:getquorumrow", "get quorum row")
+    .addParam("epoch", "epoch number", undefined, types.int, false)
+    .addParam("quorum", "quorum id", undefined, types.int, false)
+    .addParam("row", "row index", undefined, types.int, false)
+    .setAction(async (args: { epoch: number; quorum: number; row: number }, hre) => {
+        const precompile = Factories.IDASigners__factory.connect(
+            "0x0000000000000000000000000000000000001000",
+            (await hre.ethers.getSigners())[0]
+        );
+        console.log(await precompile.getQuorumRow(args.epoch, args.quorum, args.row));
     });
 
 task("precompile:getaggpkg1", "get aggregate public key g1")

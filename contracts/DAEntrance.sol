@@ -163,7 +163,7 @@ contract DAEntrance is IDAEntrance, IDASample, Initializable {
         rep.verify();
 
         // TODO: better DA_SIGNERS interface
-        address beneficiary = DA_SIGNERS.getQuorum(rep.epoch, rep.quorumId)[rep.lineIndex];
+        address beneficiary = DA_SIGNERS.getQuorumRow(rep.epoch, rep.quorumId, rep.lineIndex);
         roundSubmissions += 1;
 
         // TODO: send reward

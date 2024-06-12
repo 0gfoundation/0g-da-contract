@@ -28,6 +28,8 @@ interface IDASigners {
 
     function getQuorum(uint _epoch, uint _quorumId) external view returns (address[] memory);
 
+    function getQuorumRow(uint _epoch, uint _quorumId, uint32 _rowIndex) external view returns (address);
+
     function registerSigner(SignerDetail memory _signer, BN254.G1Point memory _signature) external;
 
     function updateSocket(string memory _socket) external;
