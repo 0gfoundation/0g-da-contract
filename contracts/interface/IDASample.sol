@@ -6,7 +6,7 @@ import "../libraries/SampleVerifier.sol";
 
 struct SampleTask {
     bytes32 sampleHash;
-    uint256 quality;
+    uint quality;
     uint64 sampleHeight;
     uint64 numSubmissions;
 }
