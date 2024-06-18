@@ -18,6 +18,9 @@ contract DAEntrance is IDAEntrance, IDASample, Initializable {
     using BN254 for BN254.G1Point;
     using SampleVerifier for SampleResponse;
 
+    // reserved storage slots for base contract upgrade in future
+    uint[50] private __gap;
+
     IDASigners public immutable DA_SIGNERS = IDASigners(0x0000000000000000000000000000000000001000);
     uint public immutable SLICE_NUMERATOR = 3;
     uint public immutable SLICE_DENOMINATOR = 8;
