@@ -8,6 +8,8 @@
     "test": "hardhat test",
     "coverage": "hardhat coverage",
     "deploy": "hardhat deploy --network",
+    "serve": "hardhat node",
+    "serve:test": "yarn build && hardhat node --tags test",
     "lint": "yarn lint:sol && yarn lint:ts",
     "lint:sol": "solhint 'contracts/**/*.sol'",
     "lint:ts": "eslint 'src/**/*.ts' '*.ts' --max-warnings 0 --fix",

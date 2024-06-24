@@ -32,7 +32,7 @@ library SampleVerifier {
 
         uint lineQuality = calculateLineQuality(blockHash, rep.epoch, rep.quorumId, rep.dataRoot, rep.lineIndex);
         uint dataQuality = calculateDataQuality(lineQuality, uint(rep.sublineIndex), rep.data);
-        require(type(uint).max - lineQuality <= dataQuality, "Quality overflow");
+        require(type(uint).max - lineQuality >= dataQuality, "Quality overflow");
         require(lineQuality + dataQuality == rep.quality, "Incorrect quality");
 
         require(rep.data.length == (32 * BLOB_COL) / SUBLINES, "Incorrect data length");
