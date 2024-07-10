@@ -55,16 +55,16 @@ task("precompile:updatesocket", "update socket").setAction(async (_, hre) => {
     }
 });
 
-task("precompile:getsigner", "get signer").setAction(async (_, hre) => {
-    const precompile = Factories.IDASigners__factory.connect(
-        "0x0000000000000000000000000000000000001000",
-        (await hre.ethers.getSigners())[0]
-    );
-    const { getNamedAccounts } = hre;
-    const { deployer } = await getNamedAccounts();
-    const signer = await precompile.getSigner([deployer]);
-    console.log(signer[0]);
-});
+task("precompile:getsigner", "get signer")
+    .addParam("addr", "signer addr", undefined, types.string, false)
+    .setAction(async (args: { addr: string }, hre) => {
+        const precompile = Factories.IDASigners__factory.connect(
+            "0x0000000000000000000000000000000000001000",
+            (await hre.ethers.getSigners())[0]
+        );
+        const signer = await precompile.getSigner([args.addr]);
+        console.log(signer[0]);
+    });
 
 task("entrance:submit", "upload").setAction(async (_, hre) => {
     const entrance = await getTypedContract(hre, CONTRACTS.DAEntrance);

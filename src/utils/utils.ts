@@ -1,4 +1,14 @@
 import { FACTORY_POSTFIX } from "@typechain/ethers-v6/dist/common";
+import {
+    BaseContract,
+    BigNumberish,
+    ContractFactory,
+    ContractRunner,
+    encodeBytes32String,
+    ethers,
+    parseUnits,
+    Signer,
+} from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 // We use the Typechain factory class objects to fill the `CONTRACTS` mapping. These objects are used
@@ -7,7 +17,6 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 //
 // 1. We import the types at compile time to ensure type safety. Hardhat does not report an error even
 // if these files are not yet generated, as long as the "--typecheck" command-line argument is not used.
-import { ContractFactory, ContractRunner, Signer } from "ethers";
 import * as TypechainTypes from "../../typechain-types";
 // 2. We import the values at runtime and silently ignore any exceptions.
 export let Factories = {} as typeof TypechainTypes;
@@ -16,6 +25,51 @@ try {
     Factories = require("../../typechain-types") as typeof TypechainTypes;
 } catch (err) {
     // ignore
+}
+
+// const ERC1967PROXY = "ERC1967Proxy";
+const UPGRADEABLE_BEACON = "UpgradeableBeacon";
+const BEACON_PROXY = "BeaconProxy";
+export const DEFAULT_ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
+export const MINTER_ROLE = ethers.id("MINTER_ROLE");
+export const PAUSER_ROLE = ethers.id("PAUSER_ROLE");
+export const SPENDER_ROLE = ethers.id("SPENDER_ROLE");
+export const VESTING_ROLE = ethers.id("VESTING_ROLE");
+export const PERP_DOMAIN = encodeBytes32String("perpDomain");
+export const MARGIN_DOMAIN = encodeBytes32String("marginDomain");
+export const UNIT = 10n ** 18n;
+
+export function validateError(e: unknown, msg: string) {
+    if (e instanceof Error) {
+        if (!e.toString().includes(msg)) {
+            throw Error(`unexpected error: ${String(e)}`);
+        }
+    } else {
+        throw Error(`unexpected error: ${String(e)}`);
+    }
+}
+
+export function mul_D(x: BigNumberish, y: BigNumberish) {
+    return (BigInt(x) * BigInt(y)) / UNIT;
+}
+
+export function div_D(x: BigNumberish, y: BigNumberish) {
+    return (BigInt(x) * UNIT) / BigInt(y);
+}
+
+export function diff_D(x: BigNumberish, y: BigNumberish) {
+    const diff = BigInt(x) - BigInt(y);
+    return diff >= 0 ? diff : -diff;
+}
+
+export function tokenOf(x: string | number, decimals: number) {
+    if (typeof x === "string") {
+        return parseUnits(x, decimals);
+    } else if (Number.isSafeInteger(x)) {
+        return BigInt(x) * 10n ** BigInt(decimals);
+    } else {
+        throw Error(`unsafe convertion from number ${x} to bigint`);
+    }
 }
 
 interface TypechainFactory<T> {
@@ -44,8 +98,31 @@ export const CONTRACTS = {
     DAEntrance: new ContractMeta(Factories.DAEntrance__factory),
 } as const;
 
-const UPGRADEABLE_BEACON = "UpgradeableBeacon";
-const BEACON_PROXY = "BeaconProxy";
+type GetContractTypeFromContractMeta<F> = F extends ContractMeta<infer C> ? C : never;
+
+type AnyContractType = GetContractTypeFromContractMeta<(typeof CONTRACTS)[keyof typeof CONTRACTS]>;
+
+export type AnyContractMeta = ContractMeta<AnyContractType>;
+
+// Ensure at compile time that all values in `CONTRACTS` conform to the `ContractMeta` interface
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const CONTRACTS_TYPE_CHECK: Readonly<Record<string, ContractMeta<BaseContract>>> = CONTRACTS;
+
+export async function deployDirectly(
+    hre: HardhatRuntimeEnvironment,
+    contract: ContractMeta<unknown>,
+    args: unknown[] = []
+) {
+    const { deployments, getNamedAccounts } = hre;
+    const { deployer } = await getNamedAccounts();
+    // deploy implementation
+    await deployments.deploy(contract.name, {
+        from: deployer,
+        contract: contract.contractName(),
+        args: args,
+        log: true,
+    });
+}
 
 export async function deployInBeaconProxy(
     hre: HardhatRuntimeEnvironment,
@@ -92,4 +169,16 @@ export async function getTypedContract<T>(
         signer = await hre.ethers.getSigner(signer);
     }
     return contract.factory.connect(address, signer);
+}
+
+export async function transact(contract: BaseContract, methodName: string, params: unknown[], execute: boolean) {
+    if (execute) {
+        await (await contract.getFunction(methodName).send(...params)).wait();
+    } else {
+        console.log(`to: ${await contract.getAddress()}`);
+        console.log(`func: ${contract.interface.getFunction(methodName)?.format()}`);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        console.log(`params: ${JSON.stringify(params, (_, v) => (typeof v === "bigint" ? v.toString() : v))}`);
+        console.log(`data: ${contract.interface.encodeFunctionData(methodName, params)}`);
+    }
 }
