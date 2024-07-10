@@ -22,8 +22,8 @@ contract DAEntrance is IDAEntrance, IDASample, Initializable {
     uint[50] private __gap;
 
     IDASigners public immutable DA_SIGNERS = IDASigners(0x0000000000000000000000000000000000001000);
-    uint public immutable SLICE_NUMERATOR = 3;
-    uint public immutable SLICE_DENOMINATOR = 8;
+    uint public immutable SLICE_NUMERATOR = 2;
+    uint public immutable SLICE_DENOMINATOR = 3;
 
     // data roots => epoch number => quorum id => verified erasure commitment
     mapping(bytes32 => mapping(uint => mapping(uint => BN254.G1Point))) private _verifiedErasureCommitment;
