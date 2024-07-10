@@ -16,12 +16,8 @@ contract MockDASample is IDASample {
         return 7;
     }
 
-    function sampleTask() external override view returns (SampleTask memory) {
-        return SampleTask({
-            sampleHash: blockhash(0),
-            quality: type(uint).max / 200,
-            sampleHeight: 0,
-            numSubmissions: 10
-        });
+    function sampleTask() external view override returns (SampleTask memory) {
+        return
+            SampleTask({sampleHash: blockhash(0), quality: type(uint).max / 200, sampleHeight: 0, numSubmissions: 10});
     }
 }
