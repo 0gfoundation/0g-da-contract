@@ -4,8 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "./libraries/BN254.sol";
 import "./libraries/SampleVerifier.sol";
-
-import "./utils/Initializable.sol";
+import "./libraries/Submission.sol";
 
 import "./interface/IDAEntrance.sol";
 import "./interface/IDASample.sol";
@@ -14,109 +13,170 @@ import "./interface/IAddressBook.sol";
 import "./interface/IFlow.sol";
 import "./interface/Submission.sol";
 
-contract DAEntrance is IDAEntrance, IDASample, Initializable {
-    using BN254 for BN254.G1Point;
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/PullPayment.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
+contract DAEntrance is IDAEntrance, IDASample, PullPayment, OwnableUpgradeable {
     using SampleVerifier for SampleResponse;
+    using SubmissionLib for CommitRootSubmission;
+    using BN254 for BN254.G1Point;
 
     // reserved storage slots for base contract upgrade in future
     uint[50] private __gap;
 
-    IDASigners public immutable DA_SIGNERS = IDASigners(0x0000000000000000000000000000000000001000);
-    uint public immutable SLICE_NUMERATOR = 2;
-    uint public immutable SLICE_DENOMINATOR = 3;
+    IDASigners public constant DA_SIGNERS = IDASigners(0x0000000000000000000000000000000000001000);
+    uint public constant SLICE_NUMERATOR = 2;
+    uint public constant SLICE_DENOMINATOR = 3;
 
-    // data roots => epoch number => quorum id => verified erasure commitment
-    mapping(bytes32 => mapping(uint => mapping(uint => BN254.G1Point))) private _verifiedErasureCommitment;
+    // submission identifier => verified erasure commitment
+    mapping(bytes32 => BN254.G1Point) private _verifiedErasureCommitment;
     uint private _quorumIndex;
+    mapping(bytes32 => bool) private _submittedDASampling;
+    bool public initialized;
 
-    // parameters for DA Sampling
+    uint public currentEpoch;
+
+    // state for DA Sampling
+    uint public constant MAX_PODAS_TARGET = type(uint).max / 128;
+    bytes32 public currentSampleSeed;
+    uint public sampleRound;
     uint public nextSampleHeight;
-    uint public targetQuality;
-    uint public immutable MAX_TARGET_QUALITY = type(uint).max / 262144;
+    uint public podasTarget;
     uint public roundSubmissions;
-    uint public immutable TARGET_ROUND_SUBMISSIONS = 20;
+    uint public targetRoundSubmissions;
+    uint public currentEpochReward;
+    uint public activedReward;
+    uint public totalDonations;
+    uint public serviceFee;
+
+    // parameters for DA parameters
+    uint public targetRoundSubmissionsNext;
+    uint public epochWindowSize;
+    uint public rewardRatio;
+    uint public singleDonation;
+    uint public blobPrice;
+    uint public samplePeriod;
+    uint public serviceFeeRateBps;
+    address public treasury;
 
     // initialize
-    function initialize() external onlyInitializeOnce {
-        nextSampleHeight = SampleVerifier.nextSampleHeight(block.number);
-        targetQuality = MAX_TARGET_QUALITY;
+    function initialize() external initializer {
+        __Ownable_init();
+
+        currentEpoch = DA_SIGNERS.epochNumber();
+        samplePeriod = 30;
+        nextSampleHeight = (block.number / samplePeriod + 1) * samplePeriod;
+        podasTarget = MAX_PODAS_TARGET;
+
+        targetRoundSubmissionsNext = 20;
+        epochWindowSize = 300;
+        rewardRatio = 1200000;
+        singleDonation = 0;
+        blobPrice = 0;
+
+        initialized = true;
     }
 
-    /*
-    function _getDataRoot(Submission memory _submission) internal pure returns (bytes32 root) {
-        uint i = _submission.nodes.length - 1;
-        root = _submission.nodes[i].root;
-        while (i > 0) {
-            --i;
-            root = keccak256(abi.encode(_submission.nodes[i].root, root));
+    // ===============
+    // Sync Interfaces
+    // ===============
+
+    function sync() public {
+        _syncEpoch();
+        _updateSampleRound();
+    }
+
+    function _syncEpoch() internal {
+        uint epoch = DA_SIGNERS.epochNumber();
+        if (currentEpoch == epoch) {
+            return;
+        }
+
+        currentEpoch = epoch;
+        _updateRewardOnNewEpoch();
+    }
+
+    function _updateSampleRound() internal {
+        if (block.number < nextSampleHeight) {
+            return;
+        }
+
+        if (sampleRound > 0) {
+            podasTarget = _adjustPodasTarget();
+        }
+
+        sampleRound += 1;
+        uint sampleHeight = nextSampleHeight;
+        currentSampleSeed = blockhash(nextSampleHeight - 1);
+        nextSampleHeight += samplePeriod;
+        targetRoundSubmissions = targetRoundSubmissionsNext;
+        roundSubmissions = 0;
+
+        emit NewSampleRound(sampleRound, sampleHeight, currentSampleSeed, podasTarget);
+    }
+
+    function _updateRewardOnNewEpoch() internal {
+        uint epochServiceFee = (currentEpochReward * serviceFeeRateBps) / 10000;
+        activedReward += currentEpochReward - epochServiceFee;
+        currentEpochReward = 0;
+        if (epochServiceFee > 0) {
+            // The treasury is a trusted address set by the admin, and does not require async payment.
+            Address.sendValue(payable(treasury), epochServiceFee);
         }
     }
-    */
+
+    function _adjustPodasTarget() internal view returns (uint podasTargetNext) {
+        uint targetDelta;
+        if (roundSubmissions > targetRoundSubmissions) {
+            targetDelta = (roundSubmissions - targetRoundSubmissions) / targetRoundSubmissions / 8;
+            podasTargetNext = podasTarget - targetDelta;
+        } else {
+            targetDelta = (targetRoundSubmissions - roundSubmissions) / targetRoundSubmissions / 8;
+            podasTargetNext = podasTarget + targetDelta;
+        }
+        if (podasTargetNext > MAX_PODAS_TARGET) {
+            podasTargetNext = MAX_PODAS_TARGET;
+        }
+    }
+
+    // ===============
+    // Query Interfaces
+    // ===============
 
     function verifiedErasureCommitment(
         bytes32 _dataRoot,
         uint _epoch,
         uint _quorumId
-    ) external view returns (BN254.G1Point memory) {
-        return _verifiedErasureCommitment[_dataRoot][_epoch][_quorumId];
+    ) public view returns (BN254.G1Point memory) {
+        bytes32 identifier = SubmissionLib.computeIdentifier(_dataRoot, _epoch, _quorumId);
+        return _verifiedErasureCommitment[identifier];
     }
 
     function commitmentExists(bytes32 _dataRoot, uint _epoch, uint _quorumId) public view returns (bool) {
-        BN254.G1Point memory commitment = _verifiedErasureCommitment[_dataRoot][_epoch][_quorumId];
+        BN254.G1Point memory commitment = verifiedErasureCommitment(_dataRoot, _epoch, _quorumId);
 
-        return commitment.X != 0 || commitment.Y != 0;
+        return !commitment.isZero();
     }
 
-    // submit encoded data
+    // ===============
+    // Blob Submission
+    // ===============
     function submitOriginalData(bytes32[] memory _dataRoots) external payable {
-        uint epoch = DA_SIGNERS.epochNumber();
-        uint quorumCount = DA_SIGNERS.quorumCount(epoch);
+        sync();
+
+        require(msg.value >= _dataRoots.length * blobPrice, "Not enough da blob fee");
+        currentEpochReward += msg.value;
+
+        uint quorumCount = DA_SIGNERS.quorumCount(currentEpoch);
         require(quorumCount > 0, "DAEntrance: No DA Signers");
         _quorumIndex = (_quorumIndex + 1) % quorumCount;
-        /*
-        // TODO: refund
-        flow_.batchSubmit{value: msg.value}(_submissions);
-        uint n = _submissions.length;
-        for (uint i = 0; i < n; ++i) {
-            bytes32 root = _getDataRoot(_submissions[i]);
-            emit DataUpload(root, epoch);
-        }
-        */
+
         uint n = _dataRoots.length;
         for (uint i = 0; i < n; ++i) {
-            emit DataUpload(_dataRoots[i], epoch, _quorumIndex);
+            emit DataUpload(_dataRoots[i], currentEpoch, _quorumIndex);
         }
-    }
-
-    function _validateSignature(
-        BN254.G1Point memory _hash,
-        BN254.G1Point memory _aggPkG1,
-        BN254.G2Point memory _aggPkG2,
-        BN254.G1Point memory _signature
-    ) internal view {
-        uint gamma = uint(
-            keccak256(
-                abi.encodePacked(
-                    _signature.X,
-                    _signature.Y,
-                    _aggPkG1.X,
-                    _aggPkG1.Y,
-                    _aggPkG2.X,
-                    _aggPkG2.Y,
-                    _hash.X,
-                    _hash.Y
-                )
-            )
-        ) % BN254.FR_MODULUS;
-        (bool success, bool valid) = BN254.safePairing(
-            _signature.plus(_aggPkG1.scalar_mul(gamma)),
-            BN254.negGeneratorG2(),
-            _hash.plus(BN254.generatorG1().scalar_mul(gamma)),
-            _aggPkG2,
-            120000
-        );
-        require(success, "DARegistry: pairing precompile call failed");
-        require(valid, "DARegistry: signature is invalid");
     }
 
     // submit commit roots and signatures
@@ -128,96 +188,151 @@ contract DAEntrance is IDAEntrance, IDASample, Initializable {
             }
 
             // verify signature
-            BN254.G1Point memory dataHash = BN254.hashToG1(
-                keccak256(
-                    abi.encodePacked(
-                        _submissions[i].dataRoot,
-                        _submissions[i].epoch,
-                        _submissions[i].quorumId,
-                        _submissions[i].erasureCommitment.X,
-                        _submissions[i].erasureCommitment.Y
-                    )
-                )
-            );
             (BN254.G1Point memory aggPkG1, uint total, uint hit) = DA_SIGNERS.getAggPkG1(
                 _submissions[i].epoch,
                 _submissions[i].quorumId,
                 _submissions[i].quorumBitmap
             );
+            _submissions[i].validateSignature(aggPkG1);
             require(SLICE_NUMERATOR * total <= hit * SLICE_DENOMINATOR, "DARegistry: insufficient signed slices");
-            _validateSignature(dataHash, aggPkG1, _submissions[i].aggPkG2, _submissions[i].signature);
+
             // save verified root
-            _verifiedErasureCommitment[_submissions[i].dataRoot][_submissions[i].epoch][
-                _submissions[i].quorumId
-            ] = _submissions[i].erasureCommitment;
+            _verifiedErasureCommitment[_submissions[i].identifier()] = _submissions[i].erasureCommitment;
             emit ErasureCommitmentVerified(_submissions[i].dataRoot, _submissions[i].epoch, _submissions[i].quorumId);
         }
     }
 
-    function submitSamplingResponse(SampleResponse memory rep) external {
-        updateSampleRound();
+    // =====================
+    // DA Sampling submission
+    // =====================
 
-        require(roundSubmissions < TARGET_ROUND_SUBMISSIONS * 2, "Too many submissions in one round");
-        require(rep.sampleHeight == nextSampleHeight - SAMPLE_PERIOD, "Unmatched sample height");
-        require(rep.quality <= targetQuality, "Quality not reached");
+    function submitSamplingResponse(SampleResponse memory rep) external {
+        sync();
+
+        bytes32 identifier = rep.identifier();
+        require(!_submittedDASampling[identifier], "Duplicated submission");
+        _submittedDASampling[identifier] = true;
+
+        require(sampleRound > 0, "Sample round 0 cannot be mined");
+        require(roundSubmissions < targetRoundSubmissions * 2, "Too many submissions in one round");
+        require(rep.sampleSeed == currentSampleSeed, "Unmatched sample seed");
+        require(rep.quality <= podasTarget, "Quality not reached");
         require(commitmentExists(rep.dataRoot, rep.epoch, rep.quorumId), "Unrecorded commitment");
-        // TODO: check whether epoch is still valid
+        require(rep.epoch + epochWindowSize >= currentEpoch, "Epoch has stopped sampling");
+        require(rep.epoch < currentEpoch, "Cannot sample current epoch");
 
         rep.verify();
 
-        // TODO: better DA_SIGNERS interface
         address beneficiary = DA_SIGNERS.getQuorumRow(rep.epoch, rep.quorumId, rep.lineIndex);
         roundSubmissions += 1;
 
-        // TODO: send reward
-        payable(beneficiary).transfer(0);
+        uint reward = activedReward / rewardRatio;
+        reward += _claimDonation();
+        if (reward > 0) {
+            activedReward -= reward;
+            _asyncTransfer(beneficiary, reward);
+        }
 
         emit DAReward(
             beneficiary,
-            rep.sampleHeight,
+            sampleRound,
             rep.epoch,
             rep.quorumId,
             rep.dataRoot,
             rep.quality,
             rep.lineIndex,
-            rep.sublineIndex
+            rep.sublineIndex,
+            reward
         );
     }
 
-    function updateSampleRound() public {
-        if (block.number < nextSampleHeight) {
-            return;
-        }
+    function _claimDonation() internal returns (uint donation) {
+        donation = totalDonations > singleDonation ? singleDonation : totalDonations;
+        totalDonations -= donation;
+    }
 
-        uint targetQualityDelta;
-        if (roundSubmissions > TARGET_ROUND_SUBMISSIONS) {
-            targetQualityDelta = (roundSubmissions - TARGET_ROUND_SUBMISSIONS) / TARGET_ROUND_SUBMISSIONS / 8;
-            targetQuality -= targetQualityDelta;
-        } else {
-            targetQualityDelta = (TARGET_ROUND_SUBMISSIONS - roundSubmissions) / TARGET_ROUND_SUBMISSIONS / 8;
-            targetQuality += targetQualityDelta;
-        }
-        if (targetQuality > MAX_TARGET_QUALITY) {
-            targetQuality = MAX_TARGET_QUALITY;
-        }
-
-        nextSampleHeight = SampleVerifier.nextSampleHeight(block.number);
-        roundSubmissions = 0;
+    function donate() public payable {
+        sync();
+        totalDonations += msg.value;
     }
 
     function sampleTask() external returns (SampleTask memory) {
-        updateSampleRound();
-
-        uint sampleHeight = nextSampleHeight - SAMPLE_PERIOD;
+        sync();
+        uint maxRoundSubmissions = targetRoundSubmissions * 2;
 
         return
             SampleTask({
-                sampleHash: blockhash(sampleHeight),
-                numSubmissions: uint64(roundSubmissions),
-                sampleHeight: uint64(sampleHeight),
-                quality: targetQuality
+                sampleHash: currentSampleSeed,
+                restSubmissions: uint64(maxRoundSubmissions - roundSubmissions),
+                podasTarget: podasTarget
             });
     }
 
-    receive() external payable {}
+    function sampleRange() external returns (SampleRange memory) {
+        sync();
+        uint startEpoch = 0;
+        uint endEpoch = 0;
+        if (currentEpoch > 0) {
+            endEpoch = currentEpoch - 1;
+        }
+        if (endEpoch >= epochWindowSize) {
+            startEpoch = endEpoch - (epochWindowSize - 1);
+        }
+
+        return SampleRange({startEpoch: uint64(startEpoch), endEpoch: uint64(endEpoch)});
+    }
+
+    // =====================
+    // Set Parameters
+    // =====================
+
+    function setRoundSubmissions(uint64 _targetRoundSubmissions) external onlyOwner {
+        sync();
+
+        require(_targetRoundSubmissions <= targetRoundSubmissions * 4, "Increase round submissions too large");
+        require(_targetRoundSubmissions >= targetRoundSubmissions / 4, "Decrease round submissions too large");
+        require(_targetRoundSubmissions > 0, "Round submissions cannot be zero");
+
+        targetRoundSubmissionsNext = _targetRoundSubmissions;
+    }
+
+    function setEpochWindowSize(uint64 _epochWindowSize) external onlyOwner {
+        sync();
+        require(_epochWindowSize > 0, "Epoch window size cannot be zero");
+        epochWindowSize = _epochWindowSize;
+    }
+
+    function setRewardRatio(uint64 _rewardRatio) external onlyOwner {
+        sync();
+        require(_rewardRatio > 0, "Reward ratio must be non-zero");
+        rewardRatio = _rewardRatio;
+    }
+
+    function setSingleDonation(uint _singleDonation) external onlyOwner {
+        sync();
+        singleDonation = _singleDonation;
+    }
+
+    function setSamplePeriod(uint64 samplePeriod_) external onlyOwner {
+        sync();
+        samplePeriod = samplePeriod_;
+        if (sampleRound == 0) {
+            nextSampleHeight = (block.number / samplePeriod + 1) * samplePeriod;
+        }
+    }
+
+    function setBlobPrice(uint _blobPrice) external onlyOwner {
+        sync();
+        blobPrice = _blobPrice;
+    }
+
+    function setServiceFeeRate(uint bps) external onlyOwner {
+        sync();
+        serviceFeeRateBps = bps;
+    }
+
+    function setTreasury(address treasury_) external onlyOwner {
+        sync();
+        treasury = treasury_;
+    }
 }

@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.12;
 
-uint64 constant SAMPLE_PERIOD = 30;
-
 uint64 constant NUM_COSET = 3;
 uint64 constant BLOB_ROW = 1024;
 uint64 constant BLOB_COL = 1024;
 uint64 constant SUBLINES = 32;
 
 struct SampleResponse {
-    uint64 sampleHeight;
+    bytes32 sampleSeed;
     uint64 epoch;
     uint64 quorumId;
     uint32 lineIndex;
@@ -22,15 +20,17 @@ struct SampleResponse {
 }
 
 library SampleVerifier {
-    function verify(SampleResponse memory rep) internal view {
-        require(rep.sampleHeight % SAMPLE_PERIOD == 0, "Block height without reward");
-        bytes32 blockHash = blockhash(rep.sampleHeight);
-        require(blockHash != bytes32(0), "Cannot fetch block hash");
+    function identifier(SampleResponse memory rep) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(rep.sampleSeed, rep.epoch, rep.quorumId, rep.lineIndex, rep.sublineIndex));
+    }
+
+    function verify(SampleResponse memory rep) internal pure {
+        require(rep.sampleSeed != bytes32(0), "Sample seed cannot be empty");
 
         require(rep.lineIndex < BLOB_ROW * NUM_COSET, "Incorrect line index");
         require(rep.sublineIndex < SUBLINES, "Incorrect sub-line index");
 
-        uint lineQuality = calculateLineQuality(blockHash, rep.epoch, rep.quorumId, rep.dataRoot, rep.lineIndex);
+        uint lineQuality = calculateLineQuality(rep.sampleSeed, rep.epoch, rep.quorumId, rep.dataRoot, rep.lineIndex);
         uint dataQuality = calculateDataQuality(lineQuality, uint(rep.sublineIndex), rep.data);
         require(type(uint).max - lineQuality >= dataQuality, "Quality overflow");
         require(lineQuality + dataQuality == rep.quality, "Incorrect quality");
@@ -45,11 +45,6 @@ library SampleVerifier {
         uint64 merklePosition = (rep.lineIndex % BLOB_ROW) * SUBLINES + rep.sublineIndex;
         verifyBlobRoot(lineRoot, blobRoot, rep.proof, merklePosition);
         verifyDataRoot(rep.blobRoots, rep.dataRoot);
-    }
-
-    function nextSampleHeight(uint cur) internal pure returns (uint) {
-        require(cur > 0, "m must be greater than 0");
-        return ((cur + SAMPLE_PERIOD - 1) / SAMPLE_PERIOD) * SAMPLE_PERIOD;
     }
 
     function calculateDataQuality(uint lineQuality, uint sublineIndex, bytes memory data) internal pure returns (uint) {

@@ -8,7 +8,7 @@ import "../interface/IDASample.sol";
 contract MockDASample is IDASample {
     using SampleVerifier for SampleResponse;
 
-    function submitSamplingResponse(SampleResponse memory rep) external view override {
+    function submitSamplingResponse(SampleResponse memory rep) external pure override {
         rep.verify();
     }
 
@@ -17,7 +17,14 @@ contract MockDASample is IDASample {
     }
 
     function sampleTask() external view override returns (SampleTask memory) {
-        return
-            SampleTask({sampleHash: blockhash(0), quality: type(uint).max / 200, sampleHeight: 0, numSubmissions: 10});
+        return SampleTask({sampleHash: blockhash(0), podasTarget: type(uint).max / 200, restSubmissions: 10});
+    }
+
+    function commitmentExists(bytes32, uint, uint) external pure returns (bool) {
+        return true;
+    }
+
+    function sampleRange() external pure returns (SampleRange memory) {
+        return SampleRange({startEpoch: 0, endEpoch: 10});
     }
 }
