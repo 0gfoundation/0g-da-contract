@@ -50,14 +50,14 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, Acc
     uint public targetRoundSubmissions;
     uint public currentEpochReward;
     uint public activedReward;
-    uint public totalDonations;
+    uint public totalBaseReward;
     uint public serviceFee;
 
     // parameters for DA parameters
     uint public targetRoundSubmissionsNext;
     uint public epochWindowSize;
     uint public rewardRatio;
-    uint public singleDonation;
+    uint public baseReward;
     uint public blobPrice;
     uint public samplePeriod;
     uint public serviceFeeRateBps;
@@ -76,7 +76,7 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, Acc
         targetRoundSubmissionsNext = 20;
         epochWindowSize = 300;
         rewardRatio = 1200000;
-        singleDonation = 0;
+        baseReward = 0;
         blobPrice = 0;
     }
 
@@ -130,15 +130,21 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, Acc
 
     function _adjustPodasTarget() internal view returns (uint podasTargetNext) {
         uint targetDelta;
+        // Scale target to avoid overflow
+        uint scaledTarget = podasTarget >> 32;
+
         if (roundSubmissions > targetRoundSubmissions) {
-            targetDelta = (roundSubmissions - targetRoundSubmissions) / targetRoundSubmissions / 8;
-            podasTargetNext = podasTarget - targetDelta;
+            targetDelta = scaledTarget * (roundSubmissions - targetRoundSubmissions) / targetRoundSubmissions / 8;
+            scaledTarget -= targetDelta;
         } else {
-            targetDelta = (targetRoundSubmissions - roundSubmissions) / targetRoundSubmissions / 8;
-            podasTargetNext = podasTarget + targetDelta;
+            targetDelta = scaledTarget * (targetRoundSubmissions - roundSubmissions) / targetRoundSubmissions / 8;
+            scaledTarget += targetDelta;
         }
-        if (podasTargetNext > MAX_PODAS_TARGET) {
+
+        if (scaledTarget >= MAX_PODAS_TARGET >> 32) {
             podasTargetNext = MAX_PODAS_TARGET;
+        } else {
+            podasTargetNext = scaledTarget << 32;
         }
     }
 
@@ -228,9 +234,9 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, Acc
         roundSubmissions += 1;
 
         uint reward = activedReward / rewardRatio;
-        reward += _claimDonation();
+        activedReward -= reward;
+        reward += _claimBaseReward();
         if (reward > 0) {
-            activedReward -= reward;
             _asyncTransfer(beneficiary, reward);
         }
 
@@ -247,14 +253,14 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, Acc
         );
     }
 
-    function _claimDonation() internal returns (uint donation) {
-        donation = totalDonations > singleDonation ? singleDonation : totalDonations;
-        totalDonations -= donation;
+    function _claimBaseReward() internal returns (uint actualReward) {
+        actualReward = totalBaseReward > baseReward ? baseReward : totalBaseReward;
+        totalBaseReward -= actualReward;
     }
 
     function donate() public payable {
         sync();
-        totalDonations += msg.value;
+        totalBaseReward += msg.value;
     }
 
     function sampleTask() external returns (SampleTask memory) {
@@ -309,9 +315,9 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, Acc
         rewardRatio = _rewardRatio;
     }
 
-    function setSingleDonation(uint _singleDonation) external onlyRole(PARAMS_ADMIN_ROLE) {
+    function setBaseReward(uint _baseReward) external onlyRole(PARAMS_ADMIN_ROLE) {
         sync();
-        singleDonation = _singleDonation;
+        baseReward = _baseReward;
     }
 
     function setSamplePeriod(uint64 samplePeriod_) external onlyRole(PARAMS_ADMIN_ROLE) {
