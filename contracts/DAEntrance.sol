@@ -6,6 +6,8 @@ import "./libraries/BN254.sol";
 import "./libraries/SampleVerifier.sol";
 import "./libraries/Submission.sol";
 
+import "./utils/ZgInitializable.sol";
+
 import "./interface/IDAEntrance.sol";
 import "./interface/IDASample.sol";
 import "./interface/IDASigners.sol";
@@ -16,9 +18,9 @@ import "./interface/Submission.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/PullPayment.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 
-contract DAEntrance is IDAEntrance, IDASample, PullPayment, OwnableUpgradeable {
+contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, AccessControlEnumerable {
     using SampleVerifier for SampleResponse;
     using SubmissionLib for CommitRootSubmission;
     using BN254 for BN254.G1Point;
@@ -29,12 +31,12 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, OwnableUpgradeable {
     IDASigners public constant DA_SIGNERS = IDASigners(0x0000000000000000000000000000000000001000);
     uint public constant SLICE_NUMERATOR = 2;
     uint public constant SLICE_DENOMINATOR = 3;
+    bytes32 public constant PARAMS_ADMIN_ROLE = keccak256("PARAMS_ADMIN_ROLE");
 
     // submission identifier => verified erasure commitment
     mapping(bytes32 => BN254.G1Point) private _verifiedErasureCommitment;
     uint private _quorumIndex;
     mapping(bytes32 => bool) private _submittedDASampling;
-    bool public initialized;
 
     uint public currentEpoch;
 
@@ -62,8 +64,9 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, OwnableUpgradeable {
     address public treasury;
 
     // initialize
-    function initialize() external initializer {
-        __Ownable_init();
+    function initialize() external onlyInitializeOnce {
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _grantRole(PARAMS_ADMIN_ROLE, _msgSender());
 
         currentEpoch = DA_SIGNERS.epochNumber();
         samplePeriod = 30;
@@ -75,8 +78,6 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, OwnableUpgradeable {
         rewardRatio = 1200000;
         singleDonation = 0;
         blobPrice = 0;
-
-        initialized = true;
     }
 
     // ===============
@@ -286,7 +287,7 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, OwnableUpgradeable {
     // Set Parameters
     // =====================
 
-    function setRoundSubmissions(uint64 _targetRoundSubmissions) external onlyOwner {
+    function setRoundSubmissions(uint64 _targetRoundSubmissions) external onlyRole(PARAMS_ADMIN_ROLE) {
         sync();
 
         require(_targetRoundSubmissions <= targetRoundSubmissions * 4, "Increase round submissions too large");
@@ -296,24 +297,24 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, OwnableUpgradeable {
         targetRoundSubmissionsNext = _targetRoundSubmissions;
     }
 
-    function setEpochWindowSize(uint64 _epochWindowSize) external onlyOwner {
+    function setEpochWindowSize(uint64 _epochWindowSize) external onlyRole(PARAMS_ADMIN_ROLE) {
         sync();
         require(_epochWindowSize > 0, "Epoch window size cannot be zero");
         epochWindowSize = _epochWindowSize;
     }
 
-    function setRewardRatio(uint64 _rewardRatio) external onlyOwner {
+    function setRewardRatio(uint64 _rewardRatio) external onlyRole(PARAMS_ADMIN_ROLE) {
         sync();
         require(_rewardRatio > 0, "Reward ratio must be non-zero");
         rewardRatio = _rewardRatio;
     }
 
-    function setSingleDonation(uint _singleDonation) external onlyOwner {
+    function setSingleDonation(uint _singleDonation) external onlyRole(PARAMS_ADMIN_ROLE) {
         sync();
         singleDonation = _singleDonation;
     }
 
-    function setSamplePeriod(uint64 samplePeriod_) external onlyOwner {
+    function setSamplePeriod(uint64 samplePeriod_) external onlyRole(PARAMS_ADMIN_ROLE) {
         sync();
         samplePeriod = samplePeriod_;
         if (sampleRound == 0) {
@@ -321,17 +322,17 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, OwnableUpgradeable {
         }
     }
 
-    function setBlobPrice(uint _blobPrice) external onlyOwner {
+    function setBlobPrice(uint _blobPrice) external onlyRole(PARAMS_ADMIN_ROLE) {
         sync();
         blobPrice = _blobPrice;
     }
 
-    function setServiceFeeRate(uint bps) external onlyOwner {
+    function setServiceFeeRate(uint bps) external onlyRole(PARAMS_ADMIN_ROLE) {
         sync();
         serviceFeeRateBps = bps;
     }
 
-    function setTreasury(address treasury_) external onlyOwner {
+    function setTreasury(address treasury_) external onlyRole(PARAMS_ADMIN_ROLE) {
         sync();
         treasury = treasury_;
     }
