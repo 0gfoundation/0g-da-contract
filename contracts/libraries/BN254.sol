@@ -91,6 +91,10 @@ library BN254 {
         }
     }
 
+    function isZero(G1Point memory p) internal pure returns (bool) {
+        return p.X == 0 && p.Y == 0;
+    }
+
     /**
      * @return r the sum of two points of G1
      */
