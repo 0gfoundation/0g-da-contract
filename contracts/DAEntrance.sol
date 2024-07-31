@@ -134,10 +134,10 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, Acc
         uint scaledTarget = podasTarget >> 32;
 
         if (roundSubmissions > targetRoundSubmissions) {
-            targetDelta = scaledTarget * (roundSubmissions - targetRoundSubmissions) / targetRoundSubmissions / 8;
+            targetDelta = (scaledTarget * (roundSubmissions - targetRoundSubmissions)) / targetRoundSubmissions / 8;
             scaledTarget -= targetDelta;
         } else {
-            targetDelta = scaledTarget * (targetRoundSubmissions - roundSubmissions) / targetRoundSubmissions / 8;
+            targetDelta = (scaledTarget * (targetRoundSubmissions - roundSubmissions)) / targetRoundSubmissions / 8;
             scaledTarget += targetDelta;
         }
 
@@ -182,7 +182,7 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, Acc
 
         uint n = _dataRoots.length;
         for (uint i = 0; i < n; ++i) {
-            emit DataUpload(_dataRoots[i], currentEpoch, _quorumIndex);
+            emit DataUpload(_dataRoots[i], currentEpoch, _quorumIndex, blobPrice);
         }
     }
 
