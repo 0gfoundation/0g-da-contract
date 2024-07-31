@@ -48,7 +48,7 @@ library SampleVerifier {
     }
 
     function calculateDataQuality(uint lineQuality, uint sublineIndex, bytes memory data) internal pure returns (uint) {
-        return uint256(keccak256(abi.encodePacked(lineQuality, sublineIndex, data)));
+        return uint(keccak256(abi.encodePacked(lineQuality, sublineIndex, data)));
     }
 
     function calculateLineQuality(
@@ -58,7 +58,7 @@ library SampleVerifier {
         bytes32 dataRoot,
         uint64 lineIndex
     ) internal pure returns (uint) {
-        return uint256(keccak256(abi.encodePacked(blockHash, epoch, quorumId, dataRoot, lineIndex)));
+        return uint(keccak256(abi.encodePacked(blockHash, epoch, quorumId, dataRoot, lineIndex)));
     }
 
     function verifyDataRoot(bytes32[3] memory blobRoots, bytes32 dataRoot) internal pure {
