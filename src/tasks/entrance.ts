@@ -2,7 +2,7 @@ import { task, types } from "hardhat/config";
 import { CONTRACTS, getTypedContract, transact } from "../utils/utils";
 
 task("entrance:setblobprice", "set blob price")
-    .addParam("price", "blob price", "", types.string, false)
+    .addParam("price", "blob price", undefined, types.string, false)
     .addParam("execute", "send transaction or not", false, types.boolean, true)
     .setAction(async (args: { price: string; execute: boolean }, hre) => {
         const entrance_ = await getTypedContract(hre, CONTRACTS.DAEntrance);
@@ -10,7 +10,7 @@ task("entrance:setblobprice", "set blob price")
     });
 
 task("entrance:settreasury", "set treasury")
-    .addParam("treasury", "treasury", "", types.string, false)
+    .addParam("treasury", "treasury", undefined, types.string, false)
     .addParam("execute", "send transaction or not", false, types.boolean, true)
     .setAction(async (args: { treasury: string; execute: boolean }, hre) => {
         const entrance_ = await getTypedContract(hre, CONTRACTS.DAEntrance);
