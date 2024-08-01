@@ -7,6 +7,7 @@ import "./libraries/SampleVerifier.sol";
 import "./libraries/Submission.sol";
 
 import "./utils/ZgInitializable.sol";
+import "./utils/PullPayment.sol";
 
 import "./interface/IDAEntrance.sol";
 import "./interface/IDASample.sol";
@@ -16,7 +17,6 @@ import "./interface/IFlow.sol";
 import "./interface/Submission.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/PullPayment.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 
@@ -78,6 +78,9 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, Acc
         rewardRatio = 1200000;
         baseReward = 0;
         blobPrice = 0;
+
+        // deploy pullpayment escrow
+        _escrow = new Escrow();
     }
 
     // ===============
