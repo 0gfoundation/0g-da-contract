@@ -185,7 +185,7 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, Acc
 
         uint n = _dataRoots.length;
         for (uint i = 0; i < n; ++i) {
-            emit DataUpload(_dataRoots[i], currentEpoch, _quorumIndex);
+            emit DataUpload(_dataRoots[i], currentEpoch, _quorumIndex, blobPrice);
         }
     }
 

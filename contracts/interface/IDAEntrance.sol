@@ -21,7 +21,7 @@ interface IDAEntrance {
 
     /*=== events ===*/
 
-    event DataUpload(bytes32 dataRoot, uint epoch, uint quorumId);
+    event DataUpload(bytes32 dataRoot, uint epoch, uint quorumId, uint blobPrice);
     event ErasureCommitmentVerified(bytes32 dataRoot, uint epoch, uint quorumId);
 
     /*=== functions ===*/
