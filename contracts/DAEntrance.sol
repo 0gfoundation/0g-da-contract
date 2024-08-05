@@ -87,9 +87,18 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, Acc
     // Sync Interfaces
     // ===============
 
+    function syncFixedTimes(uint _times) external {
+        _syncEpoch();
+        for (uint i = 0; i < _times; ++i) {
+            _updateSampleRound();
+        }
+    }
+
     function sync() public {
         _syncEpoch();
-        _updateSampleRound();
+        while (block.number >= nextSampleHeight) {
+            _updateSampleRound();
+        }
     }
 
     function _syncEpoch() internal {
