@@ -13,11 +13,21 @@ interface IDASigners {
         BN254.G2Point pkG2;
     }
 
+    struct Params {
+        uint tokensPerVote;
+        uint maxVotesPerSigner;
+        uint maxQuorums;
+        uint epochBlocks;
+        uint encodedSlices;
+    }
+
     /*=== event ===*/
     event NewSigner(address indexed signer, BN254.G1Point pkG1, BN254.G2Point pkG2);
     event SocketUpdated(address indexed signer, string socket);
 
     /*=== function ===*/
+    function params() external view returns (Params memory);
+
     function epochNumber() external view returns (uint);
 
     function quorumCount(uint _epoch) external view returns (uint);
