@@ -16,3 +16,15 @@ task("entrance:settreasury", "set treasury")
         const entrance_ = await getTypedContract(hre, CONTRACTS.DAEntrance);
         await transact(entrance_, "setTreasury", [args.treasury], args.execute);
     });
+
+task("entrance:sync", "sync").setAction(async (_, hre) => {
+    const entrance_ = await getTypedContract(hre, CONTRACTS.DAEntrance);
+    await transact(entrance_, "syncFixedTimes", [1000], true);
+});
+
+task("entrance:show", "sync").setAction(async (_, hre) => {
+    const entrance_ = await getTypedContract(hre, CONTRACTS.DAEntrance);
+    console.log(`block height: ${await hre.ethers.provider.getBlockNumber()}`);
+    console.log(`currentEpoch: ${await entrance_.currentEpoch()}`);
+    console.log(`nextSampleHeight: ${await entrance_.nextSampleHeight()}`);
+});
