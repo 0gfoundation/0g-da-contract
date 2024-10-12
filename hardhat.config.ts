@@ -55,9 +55,9 @@ const config: HardhatUserConfig = {
             blockGasLimit: 100000000,
             gas: 100000000,
         },
-        zg: {
+        zgTestnet: {
             ...userConfig,
-            url: "http://0.0.0.0:8545",
+            url: "https://evmrpc-testnet.0g.ai",
         },
     },
     namedAccounts: {
