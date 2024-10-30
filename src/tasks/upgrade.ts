@@ -14,15 +14,6 @@ task("upgrade", "upgrade contract")
         const { deployments, getNamedAccounts } = hre;
         const { deployer } = await getNamedAccounts();
         const beacon: UpgradeableBeacon = await hre.ethers.getContract(`${taskArgs.name}Beacon`, deployer);
-        const newImpl = await hre.ethers.getContractFactory(taskArgs.artifact);
-
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        await hre.upgrades.validateUpgrade(await beacon.implementation(), newImpl, {
-            unsafeAllow: ["constructor", "state-variable-immutable"],
-            kind: "beacon",
-            constructorArgs: getConstructorArgs(hre.network.name, taskArgs.artifact),
-        });
 
         const result = await deployments.deploy(`${taskArgs.name}Impl`, {
             from: deployer,
