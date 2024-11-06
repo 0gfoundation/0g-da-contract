@@ -1,4 +1,4 @@
-import { CONTRACTS } from "../utils/utils";
+import { CONTRACTS } from "./utils";
 
 export function getConstructorArgs(_network: string, name: string): unknown[] {
     let args: unknown[] = [];
