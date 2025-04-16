@@ -16,6 +16,7 @@ dotenv.config();
 const { NODE_URL, DEPLOYER_KEY, ETHERSCAN_API_KEY } = process.env;
 
 import "./src/tasks/access";
+import "./src/tasks/codesize";
 import "./src/tasks/entrance";
 import "./src/tasks/example";
 import "./src/tasks/registry";
