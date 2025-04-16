@@ -14,7 +14,7 @@ struct SampleResponse {
     uint32 sublineIndex;
     uint quality;
     bytes32 dataRoot;
-    bytes32[NUM_COSET] blobRoots;
+    bytes32[3] blobRoots; // NUM_COSET
     bytes32[] proof;
     bytes data;
 }

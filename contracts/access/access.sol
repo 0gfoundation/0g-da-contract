@@ -2,4 +2,4 @@
 
 pragma solidity ^0.8.2;
 
-import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
+import "@openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol";

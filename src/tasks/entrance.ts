@@ -27,4 +27,24 @@ task("entrance:show", "sync").setAction(async (_, hre) => {
     console.log(`block height: ${await hre.ethers.provider.getBlockNumber()}`);
     console.log(`currentEpoch: ${await entrance_.currentEpoch()}`);
     console.log(`nextSampleHeight: ${await entrance_.nextSampleHeight()}`);
+    console.log(`baseReward: ${await entrance_.baseReward()}`);
 });
+
+task("entrance:payments", "payments")
+    .addParam("account", "account address", false, types.string, true)
+    .setAction(async (taskArgs: { account: string }, hre) => {
+        const entrance_ = await getTypedContract(hre, CONTRACTS.DAEntrance);
+        console.log(hre.ethers.formatEther(await entrance_.payments(taskArgs.account)));
+        console.log(hre.ethers.formatEther(await hre.ethers.provider.getBalance(await entrance_.getAddress())));
+    });
+
+task("entrance:withdraw", "payments")
+    .addParam("account", "account address", false, types.string, true)
+    .setAction(async (taskArgs: { account: string }, hre) => {
+        const entrance_ = await getTypedContract(hre, CONTRACTS.DAEntrance);
+        console.log(hre.ethers.formatEther(await entrance_.payments(taskArgs.account)));
+        const receipt = await (await entrance_.withdrawPayments(taskArgs.account)).wait();
+        console.log(`claimed with tx: ${receipt?.hash}`);
+        console.log(hre.ethers.formatEther(await entrance_.payments(taskArgs.account)));
+        console.log(hre.ethers.formatEther(await hre.ethers.provider.getBalance(await entrance_.getAddress())));
+    });

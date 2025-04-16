@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-
-pragma solidity >=0.8.0 <0.9.0;
+pragma solidity >=0.8.0;
 
 import "../libraries/BN254.sol";
 
@@ -14,7 +13,7 @@ interface IDASigners {
     }
 
     struct Params {
-        uint tokensPerVote;
+        uint tokensPerVote; // deprecated
         uint maxVotesPerSigner;
         uint maxQuorums;
         uint epochBlocks;
@@ -46,7 +45,9 @@ interface IDASigners {
 
     function registeredEpoch(address _account, uint _epoch) external view returns (bool);
 
-    function registerNextEpoch(BN254.G1Point memory _signature) external;
+    function registerNextEpoch(address _signer, BN254.G1Point memory _signature, uint _votes) external;
+
+    function makeEpoch() external;
 
     function getAggPkG1(
         uint _epoch,

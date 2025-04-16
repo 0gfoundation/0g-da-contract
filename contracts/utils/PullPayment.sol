@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/escrow/Escrow.sol";
+import "./Escrow.sol";
 
 /**
  * @dev Simple implementation of a
