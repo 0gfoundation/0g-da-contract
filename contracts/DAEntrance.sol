@@ -16,9 +16,8 @@ import "./interface/IAddressBook.sol";
 import "./interface/IFlow.sol";
 import "./interface/Submission.sol";
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
+import "@openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol";
 
 contract DAEntrance is IDAEntrance, IDASample, PullPayment, ZgInitializable, AccessControlEnumerable {
     using SampleVerifier for SampleResponse;

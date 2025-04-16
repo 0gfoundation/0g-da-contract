@@ -28,8 +28,8 @@ try {
 }
 
 // const ERC1967PROXY = "ERC1967Proxy";
-const UPGRADEABLE_BEACON = "UpgradeableBeacon";
-const BEACON_PROXY = "BeaconProxy";
+export const UPGRADEABLE_BEACON = "UpgradeableBeacon";
+export const BEACON_PROXY = "BeaconProxy";
 export const DEFAULT_ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
 export const MINTER_ROLE = ethers.id("MINTER_ROLE");
 export const PAUSER_ROLE = ethers.id("PAUSER_ROLE");
@@ -96,6 +96,7 @@ class ContractMeta<T> {
 
 export const CONTRACTS = {
     DAEntrance: new ContractMeta(Factories.DAEntrance__factory),
+    DARegistry: new ContractMeta(Factories.DARegistry__factory),
 } as const;
 
 type GetContractTypeFromContractMeta<F> = F extends ContractMeta<infer C> ? C : never;
@@ -181,4 +182,32 @@ export async function transact(contract: BaseContract, methodName: string, param
         console.log(`params: ${JSON.stringify(params, (_, v) => (typeof v === "bigint" ? v.toString() : v))}`);
         console.log(`data: ${contract.interface.encodeFunctionData(methodName, params)}`);
     }
+}
+
+export async function getRawDeployment(
+    hre: HardhatRuntimeEnvironment,
+    contractName: string,
+    key: string,
+    args: unknown[] = [],
+    nonce: number = 0
+) {
+    const instance = await hre.ethers.getContractFactory(contractName);
+    const data = (await instance.getDeployTransaction(...args)).data;
+
+    const wallet = new ethers.Wallet(key);
+
+    const tx = {
+        type: 0,
+        nonce: nonce,
+        gasPrice: ethers.parseUnits("100", "gwei"),
+        gasLimit: 1000000n,
+        to: null,
+        value: 0,
+        data: data,
+        chainId: 0n,
+    };
+
+    const signedTx = await wallet.signTransaction(ethers.Transaction.from(tx));
+
+    return signedTx;
 }

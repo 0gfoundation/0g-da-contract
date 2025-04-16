@@ -18,6 +18,7 @@ const { NODE_URL, DEPLOYER_KEY, ETHERSCAN_API_KEY } = process.env;
 import "./src/tasks/access";
 import "./src/tasks/entrance";
 import "./src/tasks/example";
+import "./src/tasks/registry";
 import "./src/tasks/upgrade";
 
 // 0xa223d305bc8147a75761f7f72f983e5eef867bd4
@@ -37,7 +38,7 @@ const config: HardhatUserConfig = {
     solidity: {
         compilers: [
             {
-                version: "0.8.16",
+                version: "0.8.20",
                 settings: {
                     evmVersion: "istanbul",
                     optimizer: {
@@ -58,6 +59,10 @@ const config: HardhatUserConfig = {
         zgTestnet: {
             ...userConfig,
             url: "https://evmrpc-testnet.0g.ai",
+        },
+        local: {
+            ...userConfig,
+            url: "http://127.0.0.1:8545",
         },
     },
     namedAccounts: {
