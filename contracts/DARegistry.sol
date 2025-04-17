@@ -6,9 +6,12 @@ import "./interface/IDASigners.sol";
 
 error ErrSenderNotOrigin();
 error ErrSenderNotSigner();
+error ErrSenderNotEligibleToVote();
 
 contract DARegistry is OwnableUpgradeable {
     address public constant DA_SIGNERS = 0x0000000000000000000000000000000000001000;
+    uint public constant TOKENS_PER_VOTE = 30 ether;
+    uint public constant MAX_VOTES = 102400;
 
     /*
     /// @custom:storage-location erc7201:0g.storage.DARegistry
@@ -46,8 +49,15 @@ contract DARegistry is OwnableUpgradeable {
         if (msg.sender != tx.origin) {
             revert ErrSenderNotOrigin();
         }
+        uint votes = msg.sender.balance / TOKENS_PER_VOTE;
+        if (votes > MAX_VOTES) {
+            votes = MAX_VOTES;
+        }
+        if (votes == 0) {
+            revert ErrSenderNotEligibleToVote();
+        }
         (bool success, bytes memory returnData) = DA_SIGNERS.call(
-            abi.encodeWithSelector(IDASigners.registerNextEpoch.selector, msg.sender, _signature, 1)
+            abi.encodeWithSelector(IDASigners.registerNextEpoch.selector, msg.sender, _signature, votes)
         );
         require(success, string(abi.encodePacked("registerNextEpoch call failed: ", returnData)));
     }
