@@ -189,6 +189,8 @@ contract DAEntrance is IDAEntrance, IDASample, PullPayment, AccessControlEnumera
     }
 
     function _syncEpoch() internal {
+        (bool success, ) = address(DA_SIGNERS).call(abi.encodeWithSelector(IDASigners.makeEpoch.selector));
+        require(success, "DAEntrance: make epoch failed");
         uint epoch = DA_SIGNERS.epochNumber();
         DAEntranceStorage storage $ = _getDAEntranceStorage();
         if ($.currentEpoch == epoch) {

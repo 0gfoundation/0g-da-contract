@@ -21,7 +21,10 @@ struct SampleResponse {
 
 library SampleVerifier {
     function identifier(SampleResponse memory rep) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(rep.sampleSeed, rep.epoch, rep.quorumId, rep.lineIndex, rep.sublineIndex));
+        return
+            keccak256(
+                abi.encodePacked(rep.dataRoot, rep.sampleSeed, rep.epoch, rep.quorumId, rep.lineIndex, rep.sublineIndex)
+            );
     }
 
     function verify(SampleResponse memory rep) internal pure {
