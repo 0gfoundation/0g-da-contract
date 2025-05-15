@@ -9,9 +9,7 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // initialize
     console.log(`initializing ${CONTRACTS.DAEntrance.name}..`);
-    if (!(await entrance_.initialized())) {
-        await (await entrance_.initialize()).wait();
-    }
+    await (await entrance_.initialize()).wait();
 };
 
 deploy.tags = [CONTRACTS.DAEntrance.name, "prod"];

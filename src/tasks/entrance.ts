@@ -1,3 +1,4 @@
+import { parseEther } from "ethers";
 import { task, types } from "hardhat/config";
 import { CONTRACTS, getTypedContract, transact } from "../utils/utils";
 
@@ -6,7 +7,7 @@ task("entrance:setblobprice", "set blob price")
     .addParam("execute", "send transaction or not", false, types.boolean, true)
     .setAction(async (args: { price: string; execute: boolean }, hre) => {
         const entrance_ = await getTypedContract(hre, CONTRACTS.DAEntrance);
-        await transact(entrance_, "setBlobPrice", [BigInt(args.price)], args.execute);
+        await transact(entrance_, "setBlobPrice", [parseEther(args.price)], args.execute);
     });
 
 task("entrance:settreasury", "set treasury")
