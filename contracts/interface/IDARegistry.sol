@@ -7,6 +7,7 @@ interface IDARegistry {
     error ErrSenderNotSigner();
     error ErrSenderNotEligibleToVote();
     error ErrSenderRegisteredCurrentOrNextEpoch();
+    error ErrInsufficientStaked();
 
     event Staked(address account, uint amount);
     event Withdraw(address account, uint amount);

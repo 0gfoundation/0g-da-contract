@@ -80,6 +80,10 @@ contract DARegistry is IDARegistry, OwnableUpgradeable, ReentrancyGuardUpgradeab
         if (msg.sender != _signer.signer) {
             revert ErrSenderNotSigner();
         }
+        DARegistryStorage storage $ = _getDARegistryStorage();
+        if ($.staked[msg.sender] < $.tokensPerVote) {
+            revert ErrInsufficientStaked();
+        }
         (bool success, bytes memory returnData) = DA_SIGNERS.call(
             abi.encodeWithSelector(IDASigners.registerSigner.selector, _signer, _signature)
         );
