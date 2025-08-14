@@ -1,3 +1,4 @@
+import { parseEther } from "ethers";
 import { task, types } from "hardhat/config";
 import { UpgradeableBeacon } from "../../typechain-types";
 import { BN254 } from "../../typechain-types/contracts/DAEntrance";
@@ -37,6 +38,21 @@ task("registry:initialize", "check wa0gi agency status").setAction(async (_taskA
     const registry: DARegistry = await hre.ethers.getContractAt("DARegistry", REGISTRY_PROXY, signer);
     await (await registry.initialize()).wait();
 });
+
+task("registry:params", "check params").setAction(async (_taskArgs, hre) => {
+    const signer = await hre.ethers.getSigner((await hre.getNamedAccounts()).deployer);
+    const registry: DARegistry = await hre.ethers.getContractAt("DARegistry", REGISTRY_PROXY, signer);
+    console.log(await registry.params());
+});
+
+task("registry:setparams", "set registry params")
+    .addParam("maxvotes", "max votes", undefined, types.int, false)
+    .addParam("tokenspervote", "tokens per vote", undefined, types.string, false)
+    .setAction(async (taskArgs: { maxvotes: number; tokenspervote: string }, hre) => {
+        const signer = await hre.ethers.getSigner((await hre.getNamedAccounts()).deployer);
+        const registry: DARegistry = await hre.ethers.getContractAt("DARegistry", REGISTRY_PROXY, signer);
+        await (await registry.setParams(taskArgs.maxvotes, parseEther(taskArgs.tokenspervote))).wait();
+    });
 
 task("registry:check", "check wa0gi agency status").setAction(async (_taskArgs, hre) => {
     const beacon: UpgradeableBeacon = await hre.ethers.getContractAt(UPGRADEABLE_BEACON, REGISTRY_BEACON);

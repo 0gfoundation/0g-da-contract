@@ -20,7 +20,16 @@ task("entrance:settreasury", "set treasury")
 
 task("entrance:sync", "sync").setAction(async (_, hre) => {
     const entrance_ = await getTypedContract(hre, CONTRACTS.DAEntrance);
-    await transact(entrance_, "syncFixedTimes", [1000], true);
+    for (;;) {
+        const before = await entrance_.nextSampleHeight();
+        await transact(entrance_, "syncFixedTimes", [1000], true);
+        const after = await entrance_.nextSampleHeight();
+        if (after === before) {
+            break;
+        }
+        console.log(`updated sample height to ${after}.`);
+    }
+    console.log(`done.`);
 });
 
 task("entrance:show", "sync").setAction(async (_, hre) => {

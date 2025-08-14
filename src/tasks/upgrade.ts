@@ -10,10 +10,16 @@ task("upgrade", "upgrade contract")
     .addParam("name", "name of the proxy contract", undefined, types.string, false)
     .addParam("artifact", "name of the implementation contract", undefined, types.string, false)
     .addParam("execute", "settle transaction on chain", false, types.boolean, true)
-    .setAction(async (taskArgs: { name: string; artifact: string; execute: boolean }, hre) => {
+    .addParam("beacon", "beacon address", false, types.string, true)
+    .setAction(async (taskArgs: { name: string; artifact: string; execute: boolean; beacon: string }, hre) => {
         const { deployments, getNamedAccounts } = hre;
         const { deployer } = await getNamedAccounts();
-        const beacon: UpgradeableBeacon = await hre.ethers.getContract(`${taskArgs.name}Beacon`, deployer);
+        let beacon: UpgradeableBeacon;
+        if (taskArgs.beacon) {
+            beacon = await hre.ethers.getContractAt("UpgradeableBeacon", taskArgs.beacon);
+        } else {
+            beacon = await hre.ethers.getContract(`${taskArgs.name}Beacon`, deployer);
+        }
 
         const result = await deployments.deploy(`${taskArgs.name}Impl`, {
             from: deployer,

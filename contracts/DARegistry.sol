@@ -33,8 +33,19 @@ contract DARegistry is IDARegistry, OwnableUpgradeable, ReentrancyGuardUpgradeab
         __Ownable_init(0x2D7F2d2286994477Ba878f321b17A7e40E52cDa4);
 
         DARegistryStorage storage $ = _getDARegistryStorage();
-        $.maxVotes = 30 ether;
-        $.tokensPerVote = 102400;
+        $.maxVotes = 102400;
+        $.tokensPerVote = 30 ether;
+    }
+
+    function params() external view returns (uint, uint) {
+        DARegistryStorage storage $ = _getDARegistryStorage();
+        return ($.tokensPerVote, $.maxVotes);
+    }
+
+    function setParams(uint maxVotes, uint tokensPerVote) external onlyOwner {
+        DARegistryStorage storage $ = _getDARegistryStorage();
+        $.maxVotes = maxVotes;
+        $.tokensPerVote = tokensPerVote;
     }
 
     function staked(address account) external view returns (uint) {
