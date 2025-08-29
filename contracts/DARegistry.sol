@@ -11,6 +11,7 @@ import "./libraries/TransferHelper.sol";
 
 contract DARegistry is IDARegistry, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     address public constant DA_SIGNERS = 0x0000000000000000000000000000000000001000;
+    uint public constant MAX_SOCKET_LENGTH = 96;
 
     /// @custom:storage-location erc7201:0g.storage.DARegistry
     struct DARegistryStorage {
@@ -90,6 +91,9 @@ contract DARegistry is IDARegistry, OwnableUpgradeable, ReentrancyGuardUpgradeab
         }
         if (msg.sender != _signer.signer) {
             revert ErrSenderNotSigner();
+        }
+        if (bytes(_signer.socket).length > MAX_SOCKET_LENGTH) {
+            revert ErrSignerSocketTooLong();
         }
         DARegistryStorage storage $ = _getDARegistryStorage();
         if ($.staked[msg.sender] < $.tokensPerVote) {
