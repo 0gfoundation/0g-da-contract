@@ -200,7 +200,7 @@ export async function getRawDeployment(
         type: 0,
         nonce: nonce,
         gasPrice: ethers.parseUnits("100", "gwei"),
-        gasLimit: 1000000n,
+        gasLimit: 3000000n,
         to: null,
         value: 0,
         data: data,

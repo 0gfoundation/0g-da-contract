@@ -10,7 +10,7 @@ task("upgrade", "upgrade contract")
     .addParam("name", "name of the proxy contract", undefined, types.string, false)
     .addParam("artifact", "name of the implementation contract", undefined, types.string, false)
     .addParam("execute", "settle transaction on chain", false, types.boolean, true)
-    .addParam("beacon", "beacon address", false, types.string, true)
+    .addParam("beacon", "beacon address", "", types.string, true)
     .setAction(async (taskArgs: { name: string; artifact: string; execute: boolean; beacon: string }, hre) => {
         const { deployments, getNamedAccounts } = hre;
         const { deployer } = await getNamedAccounts();

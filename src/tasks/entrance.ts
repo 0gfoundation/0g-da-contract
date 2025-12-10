@@ -38,6 +38,7 @@ task("entrance:show", "sync").setAction(async (_, hre) => {
     console.log(`currentEpoch: ${await entrance_.currentEpoch()}`);
     console.log(`nextSampleHeight: ${await entrance_.nextSampleHeight()}`);
     console.log(`baseReward: ${await entrance_.baseReward()}`);
+    console.log(`samplePeriod: ${await entrance_.samplePeriod()}`);
 });
 
 task("entrance:payments", "payments")
