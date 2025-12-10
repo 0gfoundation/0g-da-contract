@@ -92,7 +92,7 @@ task("dasigners:makeepoch", "call precompile contract").setAction(async (_, hre)
         "0x0000000000000000000000000000000000001000",
         (await hre.ethers.getSigners())[0]
     );
-    console.log(await precompile.makeEpoch());
+    await (await precompile.makeEpoch()).wait();
 });
 
 task("dasigners:quorum", "call precompile contract")
