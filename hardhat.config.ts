@@ -22,12 +22,9 @@ import "./src/tasks/example";
 import "./src/tasks/registry";
 import "./src/tasks/upgrade";
 
-// 0xa223d305bc8147a75761f7f72f983e5eef867bd4
-const REMOVED_DEPLOYER_IDENTIFIER = "REMOVED_REMOVED_DEPLOYER_IDENTIFIER_PRIVATE_KEY";
-
-const userConfig: HttpNetworkUserConfig = {
-    accounts: [DEPLOYER_KEY ? DEPLOYER_KEY : REMOVED_DEPLOYER_IDENTIFIER],
-};
+const userConfig: HttpNetworkUserConfig = DEPLOYER_KEY
+    ? { accounts: [DEPLOYER_KEY] }
+    : {};
 
 const config: HardhatUserConfig = {
     paths: {
